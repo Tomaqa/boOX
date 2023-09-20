@@ -1,0 +1,4 @@
+*.o_dbg
+*.o_opt
+*_dbg.a
+*_opt.a
