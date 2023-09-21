@@ -53,17 +53,17 @@ export LRA_BIN=bin/release/mathsat_solver
     [[ -x $BOOX_BIN ]] && exit 0
     printf "'%s' not executable.\n" "$BOOX_ROOT/$BOOX_BIN" >&2
     exit 1
-)
+) || exit $?
 
 [[ -n ${USE_TOOL[lra]} ]] && {
-    [[ -d $LRA_ROOT/ ]] || (
+    [[ -d $LRA_ROOT/ ]] || {
         printf "SMT-LRA implementation is missing, expected at '%s'\n" $LRA_ROOT >&2
 
         printf "\nDo you want me to git-clone it? [enter]\n"
         read
         cd $(basename $LRA_ROOT)
         git clone --recurse-submodules https://gitlab.com/Tomaqa/mapf_r.git || exit $?
-    )
+    }
 
     [[ -x $LRA_ROOT/$LRA_BIN ]] || (
         cd $LRA_ROOT
@@ -71,12 +71,12 @@ export LRA_BIN=bin/release/mathsat_solver
         [[ -x $LRA_BIN ]] && exit 0
         printf "'%s' not executable.\n" "$LRA_ROOT/$LRA_BIN" >&2
         exit 1
-    )
+    ) || exit $?
 }
 
-compgen -G '*.kruR' >/dev/null || (
+compgen -G '*.kruR' >/dev/null || {
     ./expr_empty-16-16_kruR-gen.sh || exit $?
-)
+}
 
 OUT_DIR=out
 mkdir -p $OUT_DIR >/dev/null
