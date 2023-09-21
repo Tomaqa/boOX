@@ -47,19 +47,17 @@ export BOOX_BIN=src/main/mapfR_solver_boOX
 export LRA_ROOT="$BOOX_ROOT/../mapf_r"
 export LRA_BIN=bin/release/mathsat_solver
 
-[[ -n ${USE_TOOL[boox]} ]] && {
-    [[ -x $BOOX_ROOT/$BOOX_BIN ]] || (
-        cd $BOOX_ROOT
-        make release || exit $?
-        [[ -x $BOOX_BIN ]] && exit 0
-        printf "'%s' not executable.\n" "$BOOX_ROOT/$BOOX_BIN" >&2
-        exit 1
-    )
-}
+[[ -x $BOOX_ROOT/$BOOX_BIN ]] || (
+    cd $BOOX_ROOT
+    make release || exit $?
+    [[ -x $BOOX_BIN ]] && exit 0
+    printf "'%s' not executable.\n" "$BOOX_ROOT/$BOOX_BIN" >&2
+    exit 1
+)
 
 [[ -n ${USE_TOOL[lra]} ]] && {
     [[ -d $LRA_ROOT/ ]] || (
-        printf "SMT-LRA implementation is missing, expected at '%s'\n" >&2
+        printf "SMT-LRA implementation is missing, expected at '%s'\n" $LRA_ROOT >&2
 
         printf "\nDo you want me to git-clone it? [enter]\n"
         read
