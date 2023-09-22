@@ -47,13 +47,24 @@ export BOOX_BIN=src/main/mapfR_solver_boOX
 export LRA_ROOT="$BOOX_ROOT/../mapf_r"
 export LRA_BIN=bin/release/mathsat_solver
 
-[[ -x $BOOX_ROOT/$BOOX_BIN ]] || (
-    cd $BOOX_ROOT
-    make release || exit $?
-    [[ -x $BOOX_BIN ]] && exit 0
-    printf "'%s' not executable.\n" "$BOOX_ROOT/$BOOX_BIN" >&2
-    exit 1
-) || exit $?
+function check_bin {
+    local tool=${1^^}
+    local make_rule=$2
+
+    local -n root=${tool}_ROOT
+    local -n bin=${tool}_BIN
+
+    [[ -x $root/$bin ]] && return 0
+
+    cd $root
+    make $make_rule || return $?
+    [[ -x $bin ]] && return 0
+
+    printf "'%s' not executable.\n" "$root/$bin" >&2
+    return 1
+}
+
+[[ -n ${USE_TOOL[boox]} ]] && check_bin boox release || exit $?
 
 [[ -n ${USE_TOOL[lra]} ]] && {
     [[ -d $LRA_ROOT/ ]] || {
@@ -65,16 +76,11 @@ export LRA_BIN=bin/release/mathsat_solver
         git clone --recurse-submodules https://gitlab.com/Tomaqa/mapf_r.git || exit $?
     }
 
-    [[ -x $LRA_ROOT/$LRA_BIN ]] || (
-        cd $LRA_ROOT
-        make || exit $?
-        [[ -x $LRA_BIN ]] && exit 0
-        printf "'%s' not executable.\n" "$LRA_ROOT/$LRA_BIN" >&2
-        exit 1
-    ) || exit $?
+    check_bin lra || exit $?
 }
 
 compgen -G '*.kruR' >/dev/null || {
+    check_bin boox release || exit $?
     ./expr_empty-16-16_kruR-gen.sh || exit $?
 }
 
