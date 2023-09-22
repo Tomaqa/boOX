@@ -64,7 +64,9 @@ function check_bin {
     return 1
 }
 
-[[ -n ${USE_TOOL[boox]} ]] && check_bin boox release || exit $?
+[[ -n ${USE_TOOL[boox]} ]] && {
+    check_bin boox release || exit $?
+}
 
 [[ -n ${USE_TOOL[lra]} ]] && {
     [[ -d $LRA_ROOT/ ]] || {
