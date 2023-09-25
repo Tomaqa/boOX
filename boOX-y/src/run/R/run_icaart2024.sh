@@ -11,7 +11,7 @@ function contains {
     return 1
 }
 
-TIMEOUTS=(10 20)
+TIMEOUTS=(30 60 120 240 480 960)
 TOOLS=(boox lra)
 
 CONFIRM=1
@@ -19,21 +19,28 @@ EXTRACT_ONLY=0
 while true; do
     [[ $1 =~ ^- ]] || break
 
-    case $1 in
+    opt="$1"
+    shift
+
+    case "$opt" in
         -n) CONFIRM=0;;
         -x) EXTRACT_ONLY=1;;
+        -t) TIMEOUTS=($1); shift;;
+        *) printf "Unknown option: '%s'\n" "$opt" >&2; exit 1;;
     esac
-
-    shift
 done
 
 if [[ -z $1 ]]; then
     USE_TOOLS=(${TOOLS[@]})
 else
-    contains TOOLS $1 || {
-        printf "Invalid tool: expected one of %s, got: %s\n" ${TOOLS[@]} "$1" >&2
-    }
-    USE_TOOLS=($1)
+    USE_TOOLS=()
+    for t in "$@"; do
+        contains TOOLS "$t" || {
+            printf "Invalid tool: expected one of '%s', got: %s\n" "${TOOLS[*]}" "$t" >&2
+            exit 1
+        }
+        USE_TOOLS+=("$t")
+    done
 fi
 
 declare -A USE_TOOL
