@@ -14,6 +14,17 @@ function contains {
 TIMEOUTS=(30 60 120 240 480 960)
 TOOLS=(boox lra ccbs)
 
+BOOX_ARGS=()
+LRA_ARGS=(
+    "-o '-Fmakespan -B2'"
+    "-o '-Fsoc -B2'"
+    "-o '-Fmakespan -B1.5'"
+    "-o '-Fsoc -B1.5'"
+    "-o '-Fmakespan -B1.25'"
+    "-o '-Fsoc -B1.25'"
+)
+CCBS_ARGS=()
+
 CONFIRM=1
 EXTRACT_ONLY=0
 APPEND=0
@@ -142,81 +153,55 @@ export CCBS_ERR_PREFIX=${BOOX_ERR_PREFIX}-ccbs
 
 MIN_NEIGHBOR=2
 
-function run {
-    local tool=${1,,}
-    local experiments_kw=${2,,}
-    local experiments_type=$3
-    local experiments_type2=$4
-    local max_neighbor=$5
+function _solve {
+    (( $EXTRACT_ONLY )) && return 0
 
-    local experiments_name=${experiments_kw}-${experiments_type}
-    local experiments_full_name=${experiments_name}-${experiments_type2}
-
-    local tool_suffix
-    [[ $tool != boox ]] && tool_suffix=-$tool
-
-    local n_neighbor=$(( $max_neighbor - $MIN_NEIGHBOR + 1 ))
-
-    local scenarios=($(cat scenarios_$experiments_kw))
-    local n_scenarios=${#scenarios[@]}
-
-    local kruhobots=($(cat kruhobots_$experiments_kw))
-    local n_kruhobots=${#kruhobots[@]}
-
-    local max_n=$(( $n_kruhobots*$n_scenarios*$n_neighbor ))
-
-    local -n out_prefix=${tool^^}_OUT_PREFIX
-    local -n err_prefix=${tool^^}_ERR_PREFIX
-
-    local timeout=`cat timeout`
-
-    local out_full_prefix=${out_prefix}_${experiments_full_name}_tout${timeout}
-    local err_full_prefix=${err_prefix}_${experiments_full_name}_tout${timeout}
-
-    (( $EXTRACT_ONLY )) || {
-        printf "\nSolving %s <- %s with timeout %d\n" $tool $experiments_full_name $timeout
-        (( $CONFIRM )) && {
-            printf "Confirm ...\n"
-            read
-        }
-
-        rm -f ${out_full_prefix}*.txt
-        rm -f ${out_full_prefix}*.aux
-        rm -f ${err_full_prefix}*.txt
-        ./run_solve${tool_suffix}_${experiments_name}.sh
-
-        while true; do
-            sleep 5
-            (( ! $IGNORE_ERRORS )) && compgen -G ${err_full_prefix}'*.txt' >/dev/null && for f in ${err_full_prefix}*.txt; do
-                (( $(head -n 1 "$f" | wc -l) == 0 )) && continue
-                printf "Error in '%s' :\n" "$f" >&2
-                cat "$f" >&2
-                exit 3
-            done
-            local n=$(
-                compgen -G ${out_full_prefix}'*.aux' >/dev/null || {
-                    echo 0
-                    exit
-                }
-                for f in ${out_full_prefix}*.aux; do head -n 1 "$f"; done | wc -l
-            )
-            (( $n == $max_n )) && break
-            printf "Waiting on %s <- %s with timeout %d (%d/%d done) ...\n" $tool $experiments_full_name $timeout $n $max_n
-        done
-
-        printf "\nSolving %s <- %s with timeout %d done.\n" $tool $experiments_full_name $timeout
-
-        rm -f ${out_full_prefix}*.aux
-        if (( ! $IGNORE_ERRORS )); then
-            rm -f ${err_full_prefix}*.txt
-        else
-            compgen -G ${err_full_prefix}'*.txt' >/dev/null && for f in ${err_full_prefix}*.txt; do
-                (( $(head -n 1 "$f" | wc -l) == 0 )) && rm "$f"
-            done
-        fi
+    printf "\nSolving %s\n" "$run_str"
+    (( $CONFIRM )) && {
+        printf "Confirm ...\n"
+        read
     }
 
-    local sfile=${out_prefix#*/}_${experiments_full_name}_solved.dat
+    rm -f ${out_full_prefix}*.txt
+    rm -f ${out_full_prefix}*.aux
+    rm -f ${err_full_prefix}*.txt
+    ./run_solve${tool_suffix}_${experiments_name}.sh
+
+    while true; do
+        sleep 5
+        (( ! $IGNORE_ERRORS )) && compgen -G ${err_full_prefix}'*.txt' >/dev/null && for f in ${err_full_prefix}*.txt; do
+            (( $(head -n 1 "$f" | wc -l) == 0 )) && continue
+            printf "Error in '%s' :\n" "$f" >&2
+            cat "$f" >&2
+            exit 3
+        done
+        local n=$(
+            compgen -G ${out_full_prefix}'*.aux' >/dev/null || {
+                echo 0
+                exit
+            }
+            for f in ${out_full_prefix}*.aux; do head -n 1 "$f"; done | wc -l
+        )
+        (( $n == $max_n )) && break
+        printf "Waiting on %s (%d/%d done) ...\n" "$run_str" $n $max_n
+    done
+
+    printf "\nSolving %s done.\n" "$run_str"
+
+    rm -f ${out_full_prefix}*.aux
+    if (( ! $IGNORE_ERRORS )); then
+        rm -f ${err_full_prefix}*.txt
+    else
+        compgen -G ${err_full_prefix}'*.txt' >/dev/null && for f in ${err_full_prefix}*.txt; do
+            (( $(head -n 1 "$f" | wc -l) == 0 )) && rm "$f"
+        done
+    fi
+
+    return 0
+}
+
+function _extract {
+    local sfile=${results_full_prefix}_solved.dat
 
     (( !$APPEND && $timeout == ${TIMEOUTS[0]} )) && {
         >"$sfile"
@@ -227,7 +212,7 @@ function run {
     }
     printf "T=%d" $timeout >>"$sfile"
 
-    printf "\nExtracting %s <- %s with timeout %d\n" $tool $experiments_full_name $timeout
+    printf "\nExtracting %s\n" "$run_str"
     for (( n=$MIN_NEIGHBOR; $n <= $max_neighbor; ++n )); do
         local solved=0
         local errors=0
@@ -271,6 +256,78 @@ function run {
         printf "\t%d" $solved >>"$sfile"
     done
     printf "\n" >>"$sfile"
+
+    return 0
+}
+
+function _run {
+    export ARGS="$@"
+    export ARGS_PREFIX=
+
+    local args_str
+    [[ -n $ARGS ]] && {
+        args_str=" with args \"$ARGS\""
+
+        ARGS_PREFIX=_${ARGS// /}
+        ARGS_PREFIX=${ARGS_PREFIX//\'/}
+        out_full_prefix=${out_full_prefix_bak/$out_prefix/${out_prefix}$ARGS_PREFIX}
+        err_full_prefix=${err_full_prefix_bak/$err_prefix/${err_prefix}$ARGS_PREFIX}
+        results_full_prefix=${results_full_prefix_bak/$results_prefix/${results_prefix}$ARGS_PREFIX}
+    }
+
+    local run_str=$(printf "%s%s <- %s with timeout %d" $tool "$args_str" $experiments_full_name $timeout)
+
+    _solve
+    _extract
+
+    return 0
+}
+
+function run {
+    local tool=${1,,}
+    local experiments_kw=${2,,}
+    local experiments_type=$3
+    local experiments_type2=$4
+    local max_neighbor=$5
+
+    local experiments_name=${experiments_kw}-${experiments_type}
+    local experiments_full_name=${experiments_name}-${experiments_type2}
+
+    local tool_suffix
+    [[ $tool != boox ]] && tool_suffix=-$tool
+
+    local n_neighbor=$(( $max_neighbor - $MIN_NEIGHBOR + 1 ))
+
+    local scenarios=($(cat scenarios_$experiments_kw))
+    local n_scenarios=${#scenarios[@]}
+
+    local kruhobots=($(cat kruhobots_$experiments_kw))
+    local n_kruhobots=${#kruhobots[@]}
+
+    local max_n=$(( $n_kruhobots*$n_scenarios*$n_neighbor ))
+
+    local -n out_prefix=${tool^^}_OUT_PREFIX
+    local -n err_prefix=${tool^^}_ERR_PREFIX
+    local results_prefix=${out_prefix#*/}
+
+    local timeout=`cat timeout`
+
+    local out_full_prefix=${out_prefix}_${experiments_full_name}_tout${timeout}
+    local err_full_prefix=${err_prefix}_${experiments_full_name}_tout${timeout}
+    local results_full_prefix=${results_prefix}_${experiments_full_name}
+
+    local -n all_args=${tool^^}_ARGS
+    if [[ -z ${all_args[*]} ]]; then
+        _run
+    else
+        local out_full_prefix_bak=$out_full_prefix
+        local err_full_prefix_bak=$err_full_prefix
+        local results_full_prefix_bak=$results_full_prefix
+
+        for args in "${all_args[@]}"; do
+            _run $args
+        done
+    fi
 }
 
 for timeout in ${TIMEOUTS[@]}; do
