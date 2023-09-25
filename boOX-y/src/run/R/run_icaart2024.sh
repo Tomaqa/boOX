@@ -12,7 +12,7 @@ function contains {
 }
 
 TIMEOUTS=(30 60 120 240 480 960)
-TOOLS=(boox lra)
+TOOLS=(boox lra ccbs)
 
 CONFIRM=1
 EXTRACT_ONLY=0
@@ -55,8 +55,40 @@ done
 export BOOX_ROOT=../../../
 export BOOX_BIN=src/main/mapfR_solver_boOX
 
-export LRA_ROOT="$BOOX_ROOT/../mapf_r"
+LRA_ROOT_DIRNAME="$BOOX_ROOT/.."
+export LRA_ROOT="$LRA_ROOT_DIRNAME/mapf_r"
 export LRA_BIN=bin/release/mathsat_solver
+
+CCBS_ROOT_DIRNAME="$LRA_ROOT_DIRNAME"
+export CCBS_ROOT="$CCBS_ROOT_DIRNAME/ccbs"
+export CCBS_BIN=CCBS
+
+function maybe_clone_dir {
+    local tool=${1^^}
+    local clone_args=($2)
+    local add_cmd=($3)
+
+    local -n root=${tool}_ROOT
+
+    [[ -d $root/ ]] && return 0
+
+    printf "%s implementation is missing, expected at '%s'\n" $tool "$root" >&2
+
+    printf "\nDo you want me to git-clone it? [enter]\n"
+    read
+
+    local -n root_dirname=${tool}_ROOT_DIRNAME
+    local root_basename=$(basename "$root")
+    cd "$root_dirname" || exit $?
+    git clone ${clone_args[@]} "$root_basename" || exit $?
+
+    [[ -z ${add_cmd[*]} ]] && return 0
+
+    cd "$root_basename" || exit $?
+    ${add_cmd[@]} || exit $?
+
+    return 0
+}
 
 function check_bin {
     local tool=${1^^}
@@ -67,34 +99,35 @@ function check_bin {
 
     [[ -x $root/$bin ]] && return 0
 
-    cd $root
-    make $make_rule || return $?
+    printf "%s binary is missing, expected at '%s'\n" $tool "$root/$bin" >&2
+
+    cd "$root" || exit $?
+    make $make_rule || exit $?
     [[ -x $bin ]] && return 0
 
     printf "'%s' not executable.\n" "$root/$bin" >&2
-    return 1
+    exit 1
 }
 
 [[ -n ${USE_TOOL[boox]} ]] && {
-    check_bin boox release || exit $?
+    check_bin boox release
 }
 
 [[ -n ${USE_TOOL[lra]} ]] && {
-    [[ -d $LRA_ROOT/ ]] || {
-        printf "SMT-LRA implementation is missing, expected at '%s'\n" $LRA_ROOT >&2
-
-        printf "\nDo you want me to git-clone it? [enter]\n"
-        read
-        cd $(basename $LRA_ROOT)
-        git clone --recurse-submodules https://gitlab.com/Tomaqa/mapf_r.git || exit $?
-    }
-
-    check_bin lra || exit $?
+    maybe_clone_dir lra '--recurse_submodules https://gitlab.com/Tomaqa/mapf_r.git'
+    check_bin lra
 }
 
-compgen -G '*.kruR' >/dev/null || {
-    check_bin boox release || exit $?
-    ./expr_empty-16-16_kruR-gen.sh || exit $?
+[[ -n ${USE_TOOL[ccbs]} ]] && {
+    maybe_clone_dir ccbs https://github.com/PathPlanning/Continuous-CBS.git 'cmake .'
+    check_bin ccbs
+}
+
+[[ -n ${USE_TOOL[boox]} || -n ${USE_TOOL[lra]} ]] && {
+    compgen -G '*.kruR' >/dev/null || {
+        check_bin boox release
+        ./expr_empty-16-16_kruR-gen.sh || exit $?
+    }
 }
 
 OUT_DIR=out
@@ -102,8 +135,10 @@ mkdir -p $OUT_DIR >/dev/null
 
 export BOOX_OUT_PREFIX=$OUT_DIR/out
 export LRA_OUT_PREFIX=${BOOX_OUT_PREFIX}-lra
+export CCBS_OUT_PREFIX=${BOOX_OUT_PREFIX}-ccbs
 export BOOX_ERR_PREFIX=$OUT_DIR/err
 export LRA_ERR_PREFIX=${BOOX_ERR_PREFIX}-lra
+export CCBS_ERR_PREFIX=${BOOX_ERR_PREFIX}-ccbs
 
 MIN_NEIGHBOR=2
 
@@ -166,10 +201,10 @@ function run {
                 for f in ${out_full_prefix}*.aux; do head -n 1 "$f"; done | wc -l
             )
             (( $n == $max_n )) && break
-            printf "Waiting on %s <- %s (%d/%d done) ...\n" $tool $experiments_full_name $n $max_n
+            printf "Waiting on %s <- %s with timeout %d (%d/%d done) ...\n" $tool $experiments_full_name $timeout $n $max_n
         done
 
-        printf "\nSolving %s <- %s done.\n" $tool $experiments_full_name
+        printf "\nSolving %s <- %s with timeout %d done.\n" $tool $experiments_full_name $timeout
 
         rm -f ${out_full_prefix}*.aux
         if (( ! $IGNORE_ERRORS )); then
@@ -220,6 +255,7 @@ function run {
                 case $tool in
                     boox) ! grep -q 'SOLVABLE';;
                     lra) ! grep -q 'guaranteed suboptimal coefficient';;
+                    ccbs) ! grep -q 'Soulution found: true';;
                     *) printf "TOOL_ERROR\n" >&2; exit 5;;
                 esac <"$ofile" && skip=1
                 (( $skip )) && continue
