@@ -17,6 +17,7 @@ TOOLS=(boox lra)
 CONFIRM=1
 EXTRACT_ONLY=0
 APPEND=0
+IGNORE_ERRORS=0
 while true; do
     [[ $1 =~ ^- ]] || break
 
@@ -28,6 +29,7 @@ while true; do
         -x) EXTRACT_ONLY=1;;
         -t) TIMEOUTS=($1); shift;;
         -a) APPEND=1;;
+        -e) IGNORE_ERRORS=1;;
         *) printf "Unknown option: '%s'\n" "$opt" >&2; exit 1;;
     esac
 done
@@ -150,7 +152,7 @@ function run {
 
         while true; do
             sleep 5
-            compgen -G ${err_full_prefix}'*.txt' >/dev/null && for f in ${err_full_prefix}*.txt; do
+            (( ! $IGNORE_ERRORS )) && compgen -G ${err_full_prefix}'*.txt' >/dev/null && for f in ${err_full_prefix}*.txt; do
                 (( $(head -n 1 "$f" | wc -l) == 0 )) && continue
                 printf "Error in '%s' :\n" "$f" >&2
                 cat "$f" >&2
@@ -170,7 +172,13 @@ function run {
         printf "\nSolving %s <- %s done.\n" $tool $experiments_full_name
 
         rm -f ${out_full_prefix}*.aux
-        rm -f ${err_full_prefix}*.txt
+        if (( ! $IGNORE_ERRORS )); then
+            rm -f ${err_full_prefix}*.txt
+        else
+            compgen -G ${err_full_prefix}'*.txt' >/dev/null && for f in ${err_full_prefix}*.txt; do
+                (( $(head -n 1 "$f" | wc -l) == 0 )) && rm "$f"
+            done
+        fi
     }
 
     local sfile=${out_prefix#*/}_${experiments_full_name}_solved.dat
@@ -187,10 +195,17 @@ function run {
     printf "\nExtracting %s <- %s with timeout %d\n" $tool $experiments_full_name $timeout
     for (( n=$MIN_NEIGHBOR; $n <= $max_neighbor; ++n )); do
         local solved=0
+        local errors=0
         for k in ${kruhobots[@]}; do
             printf "Extracting n=%d k=%d ..." $n $k
             local lsolved=0
             for s in ${scenarios[@]}; do
+                local efile=${err_full_prefix}_n${n}-${s}_k${k}.txt
+                (( $IGNORE_ERRORS )) && [[ -r $efile ]] && {
+                    (( ++errors ))
+                    continue
+                }
+
                 local ofile=${out_full_prefix}_n${n}-${s}_k${k}.txt
                 [[ -r $ofile ]] || {
                     printf "'%s' not readable !!\n" "$ofile" >&2
@@ -215,6 +230,7 @@ function run {
             printf " solved: %d\n" $lsolved
         done
         printf "Total solved instances for n=%d: %d\n" $n $solved
+        (( $IGNORE_ERRORS && $errors > 0 )) && printf "Skipped error instances: %d\n" $errors
 
         printf "\t%d" $solved >>"$sfile"
     done
