@@ -16,6 +16,7 @@ TOOLS=(boox lra)
 
 CONFIRM=1
 EXTRACT_ONLY=0
+APPEND=0
 while true; do
     [[ $1 =~ ^- ]] || break
 
@@ -26,6 +27,7 @@ while true; do
         -n) CONFIRM=0;;
         -x) EXTRACT_ONLY=1;;
         -t) TIMEOUTS=($1); shift;;
+        -a) APPEND=1;;
         *) printf "Unknown option: '%s'\n" "$opt" >&2; exit 1;;
     esac
 done
@@ -173,7 +175,7 @@ function run {
 
     local sfile=${out_prefix#*/}_${experiments_full_name}_solved.dat
 
-    (( $timeout == ${TIMEOUTS[0]} )) && {
+    (( !$APPEND && $timeout == ${TIMEOUTS[0]} )) && {
         >"$sfile"
         for (( n=$MIN_NEIGHBOR; $n <= $max_neighbor; ++n )); do
             printf "\tn=%d" $n >>"$sfile"
