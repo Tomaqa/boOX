@@ -74,7 +74,7 @@ CCBS_ROOT_DIRNAME="$LRA_ROOT_DIRNAME"
 export CCBS_ROOT="$CCBS_ROOT_DIRNAME/ccbs"
 export CCBS_BIN=CCBS
 
-function maybe_clone_dir {
+function maybe_clone_dir (
     local tool=${1^^}
     local clone_args=($2)
     local add_cmd=($3)
@@ -99,9 +99,9 @@ function maybe_clone_dir {
     ${add_cmd[@]} || exit $?
 
     return 0
-}
+)
 
-function check_bin {
+function check_bin (
     local tool=${1^^}
     local make_rule=$2
 
@@ -118,7 +118,7 @@ function check_bin {
 
     printf "'%s' not executable.\n" "$root/$bin" >&2
     exit 1
-}
+)
 
 [[ -n ${USE_TOOL[boox]} ]] && {
     check_bin boox release
