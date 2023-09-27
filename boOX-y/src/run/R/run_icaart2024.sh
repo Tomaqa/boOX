@@ -16,12 +16,12 @@ TOOLS=(boox lra ccbs)
 
 BOOX_ARGS=()
 LRA_ARGS=(
-    "-o '-Fmakespan -B2'"
-    "-o '-Fsoc -B2'"
-    "-o '-Fmakespan -B1.5'"
-    "-o '-Fsoc -B1.5'"
-    "-o '-Fmakespan -B1.25'"
-    "-o '-Fsoc -B1.25'"
+    '-Fmakespan -B2'
+    '-Fsoc -B2'
+    '-Fmakespan -B1.5'
+    '-Fsoc -B1.5'
+    '-Fmakespan -B1.25'
+    '-Fsoc -B1.25'
 )
 CCBS_ARGS=()
 
