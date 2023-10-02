@@ -11,7 +11,8 @@ function contains {
     return 1
 }
 
-TIMEOUTS=(30 60 120 240 480 960)
+# TIMEOUTS=(30 60 120 240 480 960)
+TIMEOUTS=(30 60 120 240 480)
 TOOLS=(boox lra ccbs)
 
 BOOX_ARGS=()
@@ -24,6 +25,15 @@ LRA_ARGS=(
     '-Fsoc -B1.25'
 )
 CCBS_ARGS=()
+
+declare -A EXPERIMENT_TYPE{,2}
+EXPERIMENTS=(empty road2-small)
+EXPERIMENT_TYPE=([empty]=16-16)
+EXPERIMENT_TYPE2=([empty]=random)
+
+declare -A {MIN,MAX}_NEIGHBOR
+MIN_NEIGHBOR=([empty]=2)
+MAX_NEIGHBOR=([empty]=5)
 
 CONFIRM=1
 EXTRACT_ONLY=0
@@ -47,20 +57,32 @@ done
 
 if [[ -z $1 ]]; then
     USE_TOOLS=(${TOOLS[@]})
+    RUN_EXPERIMENTS=(${EXPERIMENTS[@]})
 else
     USE_TOOLS=()
-    for t in "$@"; do
-        contains TOOLS "$t" || {
-            printf "Invalid tool: expected one of '%s', got: %s\n" "${TOOLS[*]}" "$t" >&2
+    RUN_EXPERIMENTS=()
+    for arg in "$@"; do
+        if contains TOOLS "$arg"; then
+            USE_TOOLS+=("$arg")
+        elif contains EXPERIMENTS "$arg"; then
+            RUN_EXPERIMENTS+=("$arg")
+        else
+            printf "Invalid argument: expected either\na tool - one of '%s',\nor an experiment - one of '%s',\nbut got: %s\n" "${TOOLS[*]}" "${EXPERIMENTS[*]}" "$arg" >&2
             exit 1
-        }
-        USE_TOOLS+=("$t")
+        fi
     done
+    [[ -z ${USE_TOOLS[@]} ]] && USE_TOOLS=(${TOOLS[@]})
+    [[ -z ${RUN_EXPERIMENTS[@]} ]] && RUN_EXPERIMENTS=(${EXPERIMENTS[@]})
 fi
 
 declare -A USE_TOOL
 for tool in ${USE_TOOLS[@]}; do
     USE_TOOL[$tool]=1
+done
+
+declare -A RUN_EXPERIMENT
+for exp in ${RUN_EXPERIMENTS[@]}; do
+    RUN_EXPERIMENT[$exp]=1
 done
 
 export BOOX_ROOT=../../../
@@ -134,11 +156,25 @@ function check_bin (
     check_bin ccbs
 }
 
+function check_kruR {
+    local exp=$1
+
+    compgen -G "${exp}*.kruR" >/dev/null && return 0
+
+    local exp_full=$exp
+    local exp_type=${EXPERIMENT_TYPE[$exp]}
+    [[ -n $exp_type ]] && exp_full+=-${exp_type}
+
+    check_bin boox release
+    ./expr_${exp_full}_kruR-gen.sh || exit $?
+
+    return 0
+}
+
 [[ -n ${USE_TOOL[boox]} || -n ${USE_TOOL[lra]} ]] && {
-    compgen -G '*.kruR' >/dev/null || {
-        check_bin boox release
-        ./expr_empty-16-16_kruR-gen.sh || exit $?
-    }
+    for exp in ${RUN_EXPERIMENTS[@]}; do
+        check_kruR $exp
+    done
 }
 
 OUT_DIR=out
@@ -150,8 +186,6 @@ export CCBS_OUT_PREFIX=${BOOX_OUT_PREFIX}-ccbs
 export BOOX_ERR_PREFIX=$OUT_DIR/err
 export LRA_ERR_PREFIX=${BOOX_ERR_PREFIX}-lra
 export CCBS_ERR_PREFIX=${BOOX_ERR_PREFIX}-ccbs
-
-MIN_NEIGHBOR=2
 
 function _solve {
     (( $EXTRACT_ONLY )) && return 0
@@ -205,28 +239,45 @@ function _extract {
 
     (( !$APPEND && $timeout == ${TIMEOUTS[0]} )) && {
         >"$sfile"
-        for (( n=$MIN_NEIGHBOR; $n <= $max_neighbor; ++n )); do
-            printf "\tn=%d" $n >>"$sfile"
-        done
-        printf "\n" >>"$sfile"
+        [[ -n $min_neighbor && -n $max_neighbor ]] && {
+            for (( n=$min_neighbor; $n <= $max_neighbor; ++n )); do
+                printf "\tn=%d" $n >>"$sfile"
+            done
+            printf "\n" >>"$sfile"
+        }
     }
     printf "T=%d" $timeout >>"$sfile"
 
+    local ns=()
+    if [[ -n $min_neighbor && -n $max_neighbor ]]; then
+        for (( n=$min_neighbor; $n <= $max_neighbor; ++n )); do
+            ns+=($n)
+        done
+    else
+        ns=(0)
+    fi
+
     printf "\nExtracting %s\n" "$run_str"
-    for (( n=$MIN_NEIGHBOR; $n <= $max_neighbor; ++n )); do
+    for n in ${ns[@]}; do
         local solved=0
         local errors=0
         for k in ${kruhobots[@]}; do
-            printf "Extracting n=%d k=%d ..." $n $k
+            printf "Extracting "
+            (( $n != 0 )) && printf "n=%d " $n
+            printf "k=%d ..." $k
             local lsolved=0
             for s in ${scenarios[@]}; do
-                local efile=${err_full_prefix}_n${n}-${s}_k${k}.txt
+                local efile=${err_full_prefix}
+                (( $n != 0 )) && efile+=_n${n}
+                efile+=-${s}_k${k}.txt
                 (( $IGNORE_ERRORS )) && [[ -r $efile ]] && {
                     (( ++errors ))
                     continue
                 }
 
-                local ofile=${out_full_prefix}_n${n}-${s}_k${k}.txt
+                local ofile=${out_full_prefix}
+                (( $n != 0 )) && ofile+=_n${n}
+                ofile+=-${s}_k${k}.txt
                 [[ -r $ofile ]] || {
                     printf "'%s' not readable !!\n" "$ofile" >&2
                     exit 2
@@ -250,7 +301,9 @@ function _extract {
             done
             printf " solved: %d\n" $lsolved
         done
-        printf "Total solved instances for n=%d: %d\n" $n $solved
+        printf "Total solved instances"
+        (( $n != 0 )) && printf " for n=%d" $n
+        printf ": %d\n" $solved
         (( $IGNORE_ERRORS && $errors > 0 )) && printf "Skipped error instances: %d\n" $errors
 
         printf "\t%d" $solved >>"$sfile"
@@ -286,17 +339,22 @@ function _run {
 function run {
     local tool=${1,,}
     local experiments_kw=${2,,}
-    local experiments_type=$3
-    local experiments_type2=$4
-    local max_neighbor=$5
 
-    local experiments_name=${experiments_kw}-${experiments_type}
-    local experiments_full_name=${experiments_name}-${experiments_type2}
+    local experiments_type=${EXPERIMENT_TYPE[$experiments_kw]}
+    local experiments_type2=${EXPERIMENT_TYPE2[$experiments_kw]}
+
+    local experiments_name=${experiments_kw}
+    [[ -n $experiments_type ]] && experiments_name+=-${experiments_type}
+    local experiments_full_name=${experiments_name}
+    [[ -n $experiments_type2 ]] && experiments_full_name+=-${experiments_type2}
 
     local tool_suffix
     [[ $tool != boox ]] && tool_suffix=-$tool
 
-    local n_neighbor=$(( $max_neighbor - $MIN_NEIGHBOR + 1 ))
+    local min_neighbor=${MIN_NEIGHBOR[$experiments_kw]}
+    local max_neighbor=${MAX_NEIGHBOR[$experiments_kw]}
+    local n_neighbor=1
+    [[ -n $min_neighbor && -n $max_neighbor ]] && (( n_neighbor += $max_neighbor - $min_neighbor ))
 
     local scenarios=($(cat scenarios_$experiments_kw))
     local n_scenarios=${#scenarios[@]}
@@ -333,6 +391,11 @@ function run {
 for timeout in ${TIMEOUTS[@]}; do
     printf "%d" $timeout >timeout
     for tool in ${USE_TOOLS[@]}; do
-        run $tool empty 16-16 random 5
+        for exp in ${RUN_EXPERIMENTS[@]}; do
+            run $tool $exp
+        done
     done
 done
+
+printf "\nDone.\n"
+exit 0
