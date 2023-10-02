@@ -51,7 +51,7 @@ namespace boOX
   sCommandParameters::sCommandParameters()
       : m_makespan_limit(65536.0)
       , m_cost_limit(1048576.0)
-      , m_algorithm(ALGORITHM_CBS_R)	
+      , m_algorithm(ALGORITHM_CBS_R)
       , m_timeout(-1.0)
   {
       // nothing
@@ -65,7 +65,7 @@ namespace boOX
 	printf("------------------------------------------------------------------------\n");
 	printf("%s : Continuous Multi-Agent Path Finding (MAPF-R) Solver\n", sPRODUCT);
 	printf("%s\n", sCOPYRIGHT);
-	printf("========================================================================\n");	
+	printf("========================================================================\n");
     }
 
 
@@ -88,13 +88,13 @@ namespace boOX
 	printf("\n");
 	printf("Examples:\n");
 	printf("mapfR_solver_boOX --input-mapR-file=grid_02x02.mapR\n");
-	printf("                  --input-kruhoR-file=grid_02x02.kruR\n"); 
+	printf("                  --input-kruhoR-file=grid_02x02.kruR\n");
 	printf("                  --output-file=output.txt\n");
 	printf("\n");
 	printf("Defaults: --makespan-limit=65536.0\n");
 	printf("          --cost-limit=1048576.0\n");
 	printf("          --algorithm=cbsR\n");
-	printf("          --timeout=-1.0 (unlimited)\n");		
+	printf("          --timeout=-1.0 (unlimited)\n");
 	printf("\n");
     }
 
@@ -105,7 +105,7 @@ namespace boOX
 	sInstance instance;
 
 	s2DMap real_Map;
-	
+
 	if (!command_parameters.m_mapR_input_filename.empty())
 	{
 	    result = real_Map.from_File_mapR(command_parameters.m_mapR_input_filename);
@@ -114,7 +114,7 @@ namespace boOX
 	    {
 		printf("Error: Failed to open continuous multi-agent path finding (MAPF-R) map (mapR) file %s (code = %d).\n", command_parameters.m_mapR_input_filename.c_str(), result);
 		return result;
-	    }	    
+	    }
 	}
 
 	sRealInstance real_Instance(&real_Map);
@@ -135,17 +135,17 @@ namespace boOX
 
 		real_Instance.collect_StartingGoalLocations(selected_location_IDs);
 
-//		real_Map.calc_AllPairsStraightDistances();		
+//		real_Map.calc_AllPairsStraightDistances();
 		real_Map.calc_NetworkPairsStraightDistances();
 
-		real_Map.calc_SelectedPairsStraightDistances(selected_location_IDs);		
+		real_Map.calc_SelectedPairsStraightDistances(selected_location_IDs);
 		real_Map.calc_SelectedPairsShortestDistances(selected_location_IDs);
 	    }
 	}
-       
-	sDouble makespan, cost;	
+
+	sDouble makespan, cost;
 	sRealSMTCBS::KruhobotSchedules_vector kruhobot_Schedules;
-	
+
 	switch (command_parameters.m_algorithm)
 	{
 	case sCommandParameters::ALGORITHM_CBS_R:
@@ -157,7 +157,7 @@ namespace boOX
   	    #endif
 
 	    sRealCBS real_CBS_Solver(&real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_CBS_Solver.find_ShortestNonconflictingSchedules(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
 	}
@@ -170,7 +170,7 @@ namespace boOX
   	    #endif
 
 	    sRealCBS real_CBS_Solver(&real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_CBS_Solver.find_ShortestNonconflictingSchedules_smart(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
 	}
@@ -183,10 +183,10 @@ namespace boOX
   	    #endif
 
 	    sRealCBS real_CBS_Solver(&real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_CBS_Solver.find_ShortestNonconflictingSchedules_strong(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
-	}		
+	}
 	case sCommandParameters::ALGORITHM_SMTCBS_R:
 	{
             #ifdef sSTATISTICS
@@ -197,7 +197,7 @@ namespace boOX
 
 	    sBoolEncoder boolean_Encoder;
 	    sRealSMTCBS real_SMTCBS_Solver(&boolean_Encoder, &real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_SMTCBS_Solver.find_ShortestNonconflictingSchedules(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
 	}
@@ -211,7 +211,7 @@ namespace boOX
 
 	    sBoolEncoder boolean_Encoder;
 	    sRealSMTCBS real_SMTCBS_Solver(&boolean_Encoder, &real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_SMTCBS_Solver.find_ShortestNonconflictingSchedules_pruningSmart(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
 	}
@@ -225,7 +225,7 @@ namespace boOX
 
 	    sBoolEncoder boolean_Encoder;
 	    sRealSMTCBS real_SMTCBS_Solver(&boolean_Encoder, &real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_SMTCBS_Solver.find_ShortestNonconflictingSchedules_pruningStrong(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
 	}
@@ -239,7 +239,7 @@ namespace boOX
 
 	    sBoolEncoder boolean_Encoder;
 	    sRealSMTCBS real_SMTCBS_Solver(&boolean_Encoder, &real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_SMTCBS_Solver.find_ShortestNonconflictingSchedules_conflictRespectful(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
 	}
@@ -253,7 +253,7 @@ namespace boOX
 
 	    sBoolEncoder boolean_Encoder;
 	    sRealSMTCBS real_SMTCBS_Solver(&boolean_Encoder, &real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_SMTCBS_Solver.find_ShortestNonconflictingSchedules_individualizedConflictRespectful(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
 	}
@@ -267,7 +267,7 @@ namespace boOX
 
 	    sBoolEncoder boolean_Encoder;
 	    sRealSMTCBS real_SMTCBS_Solver(&boolean_Encoder, &real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = real_SMTCBS_Solver.find_ExactShortestNonconflictingSchedules_individualizedConflictRespectful(kruhobot_Schedules, command_parameters.m_makespan_limit);
 	    break;
 	}
@@ -281,11 +281,11 @@ namespace boOX
 
 	    sBoolEncoder boolean_Encoder;
 	    sRealSMTCBS real_SMTCBS_Solver(&boolean_Encoder, &real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = cost = real_SMTCBS_Solver.find_CostExactShortestNonconflictingSchedules_individualizedConflictRespectful(kruhobot_Schedules,
 																command_parameters.m_makespan_limit,
 																command_parameters.m_cost_limit);
-	    
+
 	    break;
 	}
 	case sCommandParameters::ALGORITHM_SMTCBS_R_STAR_SOC_PLUS:
@@ -298,13 +298,13 @@ namespace boOX
 
 	    sBoolEncoder boolean_Encoder;
 	    sRealSMTCBS real_SMTCBS_Solver(&boolean_Encoder, &real_Instance, command_parameters.m_timeout);
-	    
+
 	    makespan = cost = real_SMTCBS_Solver.find_DomularCostExactShortestNonconflictingSchedules_individualizedConflictRespectful(kruhobot_Schedules,
 																       command_parameters.m_makespan_limit,
 																       command_parameters.m_cost_limit);
-	    
+
 	    break;
-	}		
+	}
 	default:
 	{
 	    sASSERT(false);
@@ -328,17 +328,17 @@ namespace boOX
 	    {
 		printf("The answer is INDETERMINATE for the input instance under given makespan limit of %.3f and cost limit of %.3f\n",
 		       command_parameters.m_makespan_limit,
-		       command_parameters.m_cost_limit);		
+		       command_parameters.m_cost_limit);
 	    }
 	    else
 	    {
 		printf("The instance cannot be solver from UNKNOWN reason.\n");
-	    }	    
+	    }
 	}
 	else
-	{	    
+	{
 	    sRealCBSBase::Costs_vector individual_Costs;
-	    
+
 	    makespan = sRealCBSBase::calc_Makespan(real_Instance, kruhobot_Schedules);
 	    cost = sRealCBSBase::calc_Cost(real_Instance, kruhobot_Schedules, individual_Costs);
 
@@ -351,17 +351,18 @@ namespace boOX
 	    printf("%sindividual costs:\n", s_INDENT.c_str());
 
 	    sInt_32 N_kruhobots_1 = individual_Costs.size();
-	    
+
 	    for (sInt_32 kruhobot_id = 1; kruhobot_id < N_kruhobots_1; ++kruhobot_id)
 	    {
 		printf("%scost of kruhobot %d: %.3f\n", s2_INDENT.c_str(), kruhobot_id, individual_Costs[kruhobot_id]);
 	    }
 	    printf("----------------\n");
-	    
+	    fflush(stdout);
+
 	    if (!command_parameters.m_output_filename.empty())
 	    {
-		result = sRealCBSBase::to_File(command_parameters.m_output_filename, kruhobot_Schedules);	    
-		
+		result = sRealCBSBase::to_File(command_parameters.m_output_filename, kruhobot_Schedules);
+
 		if (sFAILED(result))
 		{
 		    printf("Error: Failed to write problem solution to %s (code = %d).\n", command_parameters.m_output_filename.c_str(), result);
@@ -369,9 +370,10 @@ namespace boOX
 		}
 	    }
 
-	    printf("Verifying solution ...\n");	    
+	    printf("Verifying solution ...\n");
+		fflush(stdout);
 	    sRealSolution real_Solution(real_Instance, kruhobot_Schedules);
-	    
+
 	    if (sFAILED(result = real_Solution.verify_Simulate(real_Instance, s__VERIFICATION_SIMULATION_STEP)))
 	    {
 		printf("Error: Cannot verify solution (code = %d).\n", result);
@@ -386,8 +388,9 @@ namespace boOX
 		}
 		else
 		{
-		    printf("Solution verification test ... OK\n");		    
+		    printf("Solution verification test ... OK\n");
 		}
+		fflush(stdout);
 	    }
 	}
         #ifdef sSTATISTICS
@@ -395,7 +398,7 @@ namespace boOX
 	    s_GlobalStatistics.leave_Phase();
 	}
 	#endif
-	
+
 	#ifdef sSTATISTICS
 	{
 	    s_GlobalStatistics.to_Screen();
@@ -415,11 +418,11 @@ namespace boOX
 	else if (parameter.find("--input-kruhoR-file=") == 0)
 	{
 	    command_parameters.m_kruhoR_input_filename = parameter.substr(20, parameter.size());
-	}	
+	}
 	else if (parameter.find("--output-file=") == 0)
 	{
 	    command_parameters.m_output_filename = parameter.substr(14, parameter.size());
-	}	
+	}
 	else if (parameter.find("--makespan-limit=") == 0)
 	{
 	    command_parameters.m_makespan_limit = sDouble_from_String(parameter.substr(17, parameter.size()));
@@ -427,7 +430,7 @@ namespace boOX
 	else if (parameter.find("--cost-limit=") == 0)
 	{
 	    command_parameters.m_cost_limit = sDouble_from_String(parameter.substr(13, parameter.size()));
-	}		
+	}
 	else if (parameter.find("--algorithm=") == 0)
 	{
 	    sString algorithm_str = parameter.substr(12, parameter.size());
@@ -443,7 +446,7 @@ namespace boOX
 	    else if (algorithm_str == "cbsR++")
 	    {
 		command_parameters.m_algorithm = sCommandParameters::ALGORITHM_CBS_R_PLUS_PLUS;
-	    }	    	    
+	    }
 	    else if (algorithm_str == "smtcbsR")
 	    {
 		command_parameters.m_algorithm = sCommandParameters::ALGORITHM_SMTCBS_R;
@@ -475,7 +478,7 @@ namespace boOX
 	    else if (algorithm_str == "smtcbsR*soc+" || algorithm_str == "smtcbsRstarsoc+")
 	    {
 		command_parameters.m_algorithm = sCommandParameters::ALGORITHM_SMTCBS_R_STAR_SOC_PLUS;
-	    }	    	    	    	    	    	    	    
+	    }
 	    else
 	    {
 		return sMAPF_R_SOLVER_PROGRAM_UNRECOGNIZED_PARAMETER_ERROR;
@@ -484,7 +487,7 @@ namespace boOX
 	else if (parameter.find("--timeout=") == 0)
 	{
 	    command_parameters.m_timeout = sDouble_from_String(parameter.substr(10, parameter.size()));
-	}	
+	}
 	else
 	{
 	    return sMAPF_R_SOLVER_PROGRAM_UNRECOGNIZED_PARAMETER_ERROR;
@@ -530,9 +533,9 @@ int main(int argc, char **argv)
 	{
 	    printf("Error: Kruhobot file name missing (code = %d).\n", sMAPF_R_SOLVER_PROGRAM_MISSING_KRUHOBOT_FILE_ERROR);
 	    return sMAPF_R_SOLVER_PROGRAM_MISSING_KRUHOBOT_FILE_ERROR;
-	}		
+	}
 	result = solve_RealMultiAgentPathFindingInstance(command_parameters);
-	
+
 	if (sFAILED(result))
 	{
 	    return result;
@@ -544,4 +547,3 @@ int main(int argc, char **argv)
     }
     return sRESULT_SUCCESS;
 }
-
