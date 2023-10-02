@@ -238,7 +238,7 @@ function _extract {
 
                 local skip=0
                 case $tool in
-                    boox) ! grep -q 'SOLVABLE';;
+                    boox) ! grep -q 'SOLVABLE' || grep -q 'FAILED';;
                     lra) ! grep -q 'guaranteed suboptimal coefficient';;
                     ccbs) ! grep -q 'Soulution found: true';;
                     *) printf "TOOL_ERROR\n" >&2; exit 5;;

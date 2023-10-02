@@ -9,6 +9,6 @@ KRUHOBOTS_LIST=`cat kruhobots_empty`
 for KRUHOBOTS in $KRUHOBOTS_LIST;
 do
     echo 'Solving '$PREFIX' scenario '$SCENARIO' MAPF-R instance with '$KRUHOBOTS' kruhobots ...'
-    ../../main/mapfR_solver_boOX '--timeout='$TIMEOUT '--input-mapR-file=map_'$PREFIX'_n'$NEIGHBOR'.mapR' '--input-kruhoR-file='$PREFIX'-'$SCENARIO'_k'$KRUHOBOTS'.kruR' '--algorithm=smtcbsR*' '--output-file=solution.txt' >'out/out_'$PREFIX'_tout'$TIMEOUT'_n'$NEIGHBOR'-'$SCENARIO'_k'$KRUHOBOTS'.txt' 2>'out/err_'$PREFIX'_tout'$TIMEOUT'_n'$NEIGHBOR'-'$SCENARIO'_k'$KRUHOBOTS'.txt'
+    ../../main/mapfR_solver_boOX '--timeout='$TIMEOUT '--input-mapR-file=map_'$PREFIX'_n'$NEIGHBOR'.mapR' '--input-kruhoR-file='$PREFIX'-'$SCENARIO'_k'$KRUHOBOTS'.kruR' '--algorithm=smtcbsR*' '--output-file=solution_n'$NEIGHBOR'-'$SCENARIO'.txt' >'out/out_'$PREFIX'_tout'$TIMEOUT'_n'$NEIGHBOR'-'$SCENARIO'_k'$KRUHOBOTS'.txt' 2>'out/err_'$PREFIX'_tout'$TIMEOUT'_n'$NEIGHBOR'-'$SCENARIO'_k'$KRUHOBOTS'.txt'
     echo done >'out/out_'$PREFIX'_tout'$TIMEOUT'_n'$NEIGHBOR'-'$SCENARIO'_k'$KRUHOBOTS'.aux'
 done
