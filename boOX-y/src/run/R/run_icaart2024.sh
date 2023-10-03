@@ -235,18 +235,16 @@ function _solve {
 }
 
 function _extract {
-    local sfile=${results_full_prefix}_solved.dat
-
     (( !$APPEND && $timeout == ${TIMEOUTS[0]} )) && {
-        >"$sfile"
+        printf "T" $n >"$results_file"
         [[ -n $min_neighbor && -n $max_neighbor ]] && {
             for (( n=$min_neighbor; $n <= $max_neighbor; ++n )); do
-                printf "\tn=%d" $n >>"$sfile"
+                printf "\tn=%d" $n >>"$results_file"
             done
-            printf "\n" >>"$sfile"
         }
+        printf "\n" >>"$results_file"
     }
-    printf "T=%d" $timeout >>"$sfile"
+    printf "%d" $timeout >>"$results_file"
 
     local ns=()
     if [[ -n $min_neighbor && -n $max_neighbor ]]; then
@@ -306,9 +304,9 @@ function _extract {
         printf ": %d\n" $solved
         (( $IGNORE_ERRORS && $errors > 0 )) && printf "Skipped error instances: %d\n" $errors
 
-        printf "\t%d" $solved >>"$sfile"
+        printf "\t%d" $solved >>"$results_file"
     done
-    printf "\n" >>"$sfile"
+    printf "\n" >>"$results_file"
 
     return 0
 }
@@ -329,6 +327,8 @@ function _run {
     }
 
     local run_str=$(printf "%s%s <- %s with timeout %d" $tool "$args_str" $experiments_full_name $timeout)
+
+    local results_file=${results_full_prefix}_solved.dat
 
     _solve
     _extract
