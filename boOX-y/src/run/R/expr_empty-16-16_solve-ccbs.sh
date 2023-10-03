@@ -1,7 +1,7 @@
 NEIGHBOR=$1
 SCENARIO=$2
 
-TIMEOUT=`cat timeout`
+[[ -z $TIMEOUT ]] && TIMEOUT=`cat timeout`
 PREFIX="empty-16-16-random"
 
 KRUHOBOTS_LIST=`cat kruhobots_empty`

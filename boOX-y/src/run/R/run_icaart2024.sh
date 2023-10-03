@@ -368,7 +368,7 @@ function run {
     local -n err_prefix=${tool^^}_ERR_PREFIX
     local results_prefix=${out_prefix#*/}
 
-    local timeout=`cat timeout`
+    local timeout=$TIMEOUT
 
     local out_full_prefix=${out_prefix}_${experiments_full_name}_tout${timeout}
     local err_full_prefix=${err_prefix}_${experiments_full_name}_tout${timeout}
@@ -389,7 +389,7 @@ function run {
 }
 
 for timeout in ${TIMEOUTS[@]}; do
-    printf "%d" $timeout >timeout
+    export TIMEOUT=$timeout
     for tool in ${USE_TOOLS[@]}; do
         for exp in ${RUN_EXPERIMENTS[@]}; do
             run $tool $exp

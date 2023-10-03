@@ -1,6 +1,6 @@
 SCENARIO=$1
 
-TIMEOUT=`cat timeout`
+[[ -z $TIMEOUT ]] && TIMEOUT=`cat timeout`
 PREFIX="road2-small"
 
 KRUHOBOTS_LIST=`cat kruhobots_road2-small`
