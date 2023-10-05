@@ -13,15 +13,15 @@ function contains {
 
 # TIMEOUTS=(30 60 120 240 480 960)
 TIMEOUTS=(30 60 120 240 480)
-TOOLS=(boox lra ccbs)
+TOOLS=(boox ccbs lra)
 
 BOOX_ARGS=()
 LRA_ARGS=(
     '-Fmakespan -B2'
-    '-Fsoc -B2'
     '-Fmakespan -B1.5'
-    '-Fsoc -B1.5'
     '-Fmakespan -B1.25'
+    '-Fsoc -B2'
+    '-Fsoc -B1.5'
     '-Fsoc -B1.25'
 )
 CCBS_ARGS=()
@@ -37,6 +37,7 @@ MAX_NEIGHBOR=([empty]=5)
 
 CONFIRM=1
 EXTRACT_ONLY=0
+PLOT_ONLY=0
 APPEND=0
 IGNORE_ERRORS=0
 while true; do
@@ -48,6 +49,7 @@ while true; do
     case "$opt" in
         -n) CONFIRM=0;;
         -x) EXTRACT_ONLY=1;;
+        -p) PLOT_ONLY=1;;
         -t) TIMEOUTS=($1); shift;;
         -a) APPEND=1;;
         -e) IGNORE_ERRORS=1;;
@@ -97,6 +99,8 @@ export CCBS_ROOT="$CCBS_ROOT_DIRNAME/ccbs"
 export CCBS_BIN=CCBS
 
 function maybe_clone_dir (
+    (( $EXTRACT_ONLY || $PLOT_ONLY )) && return 0
+
     local tool=${1^^}
     local clone_args=($2)
     local add_cmd=($3)
@@ -124,6 +128,8 @@ function maybe_clone_dir (
 )
 
 function check_bin (
+    (( $EXTRACT_ONLY || $PLOT_ONLY )) && return 0
+
     local tool=${1^^}
     local make_rule=$2
 
@@ -157,6 +163,8 @@ function check_bin (
 }
 
 function check_kruR {
+    (( $EXTRACT_ONLY || $PLOT_ONLY )) && return 0
+
     local exp=$1
 
     compgen -G "${exp}*.kruR" >/dev/null && return 0
@@ -195,6 +203,8 @@ function _solve {
         printf "Confirm ...\n"
         read
     }
+
+    export TIMEOUT=$timeout
 
     rm -f ${out_full_prefix}*.txt
     rm -f ${out_full_prefix}*.aux
@@ -236,24 +246,15 @@ function _solve {
 
 function _extract {
     (( !$APPEND && $timeout == ${TIMEOUTS[0]} )) && {
-        printf "T" $n >"$results_file"
+        printf "T" >"$results_solved_file"
         [[ -n $min_neighbor && -n $max_neighbor ]] && {
             for (( n=$min_neighbor; $n <= $max_neighbor; ++n )); do
-                printf "\tn=%d" $n >>"$results_file"
+                printf "\tn=%d" $n >>"$results_solved_file"
             done
         }
-        printf "\n" >>"$results_file"
+        printf "\n" >>"$results_solved_file"
     }
-    printf "%d" $timeout >>"$results_file"
-
-    local ns=()
-    if [[ -n $min_neighbor && -n $max_neighbor ]]; then
-        for (( n=$min_neighbor; $n <= $max_neighbor; ++n )); do
-            ns+=($n)
-        done
-    else
-        ns=(0)
-    fi
+    printf "%d" $timeout >>"$results_solved_file"
 
     printf "\nExtracting %s\n" "$run_str"
     for n in ${ns[@]}; do
@@ -261,12 +262,12 @@ function _extract {
         local errors=0
         for k in ${kruhobots[@]}; do
             printf "Extracting "
-            (( $n != 0 )) && printf "n=%d " $n
+            [[ $n != $invalid_n ]] && printf "n=%d " $n
             printf "k=%d ..." $k
             local lsolved=0
             for s in ${scenarios[@]}; do
                 local efile=${err_full_prefix}
-                (( $n != 0 )) && efile+=_n${n}
+                [[ $n != $invalid_n ]] && efile+=_n${n}
                 efile+=-${s}_k${k}.txt
                 (( $IGNORE_ERRORS )) && [[ -r $efile ]] && {
                     (( ++errors ))
@@ -274,7 +275,7 @@ function _extract {
                 }
 
                 local ofile=${out_full_prefix}
-                (( $n != 0 )) && ofile+=_n${n}
+                [[ $n != $invalid_n ]] && ofile+=_n${n}
                 ofile+=-${s}_k${k}.txt
                 [[ -r $ofile ]] || {
                     printf "'%s' not readable !!\n" "$ofile" >&2
@@ -300,15 +301,64 @@ function _extract {
             printf " solved: %d\n" $lsolved
         done
         printf "Total solved instances"
-        (( $n != 0 )) && printf " for n=%d" $n
+        [[ $n != $invalid_n ]] && printf " for n=%d" $n
         printf ": %d\n" $solved
         (( $IGNORE_ERRORS && $errors > 0 )) && printf "Skipped error instances: %d\n" $errors
 
-        printf "\t%d" $solved >>"$results_file"
+        printf "\t%d" $solved >>"$results_solved_file"
     done
-    printf "\n" >>"$results_file"
+    printf "\n" >>"$results_solved_file"
 
     return 0
+}
+
+function _run_main {
+    (( $PLOT_ONLY )) && return 0
+
+    _solve
+    _extract
+}
+
+function _merge {
+    [[ -r $results_solved_file ]] || {
+        printf "Results file not readable: %s\n" "$results_solved_file" >&2
+        exit 4
+    }
+
+    printf "\n"
+
+    local rows=$(( ${#TIMEOUTS[@]} + 1 ))
+
+    for n in ${ns[@]}; do
+        local srsfile="$merged_results_solved_file"
+        [[ $n != $invalid_n ]] && srsfile="${srsfile/_merged/_merged_n${n}}"
+
+        printf "Merging %s" "$results_solved_file"
+        [[ $n != $invalid_n ]] && printf " n=%d" $n
+        printf " -> %s ...\n" "$srsfile"
+
+        if [[ $tool == boox ]]; then
+            awk "NR<=$rows{print \$1}" "$results_solved_file" >"$srsfile"
+        else
+            [[ -w $srsfile ]] || {
+                printf "Shared results file not writable: %s\n" "$srsfile" >&2
+                exit 4
+            }
+        fi
+
+        local col=2
+        [[ $n != $invalid_n ]] && (( col += $n - $min_neighbor ))
+
+        local aux_f=`mktemp`
+        paste "$srsfile" <(awk "BEGIN{print \"$tool\"} NR>1&&NR<=$rows{print \$$col}" "$results_solved_file") >$aux_f
+        mv $aux_f "$srsfile"
+    done
+}
+
+function _run_plot {
+    (( $EXTRACT_ONLY )) && return 0
+
+    _merge
 }
 
 function _run {
@@ -328,17 +378,21 @@ function _run {
 
     local run_str=$(printf "%s%s <- %s with timeout %d" $tool "$args_str" $experiments_full_name $timeout)
 
-    local results_file=${results_full_prefix}_solved.dat
+    local results_solved_file=${results_full_prefix}_solved.dat
+    local merged_results_solved_file=${merged_results_full_prefix}_solved_merged.dat
 
-    _solve
-    _extract
+    _run_${action}
 
     return 0
 }
 
 function run {
+    local action=$1
+    shift
+
     local tool=${1,,}
     local experiments_kw=${2,,}
+    local timeout=$3
 
     local experiments_type=${EXPERIMENT_TYPE[$experiments_kw]}
     local experiments_type2=${EXPERIMENT_TYPE2[$experiments_kw]}
@@ -354,7 +408,17 @@ function run {
     local min_neighbor=${MIN_NEIGHBOR[$experiments_kw]}
     local max_neighbor=${MAX_NEIGHBOR[$experiments_kw]}
     local n_neighbor=1
-    [[ -n $min_neighbor && -n $max_neighbor ]] && (( n_neighbor += $max_neighbor - $min_neighbor ))
+    local ns=()
+    local invalid_n=0
+    if [[ -n $min_neighbor && -n $max_neighbor ]]; then
+        (( n_neighbor += $max_neighbor - $min_neighbor ))
+
+        for (( n=$min_neighbor; $n <= $max_neighbor; ++n )); do
+            ns+=($n)
+        done
+    else
+        ns=($invalid_n)
+    fi
 
     local scenarios=($(cat scenarios_$experiments_kw))
     local n_scenarios=${#scenarios[@]}
@@ -367,12 +431,12 @@ function run {
     local -n out_prefix=${tool^^}_OUT_PREFIX
     local -n err_prefix=${tool^^}_ERR_PREFIX
     local results_prefix=${out_prefix#*/}
-
-    local timeout=$TIMEOUT
+    local merged_results_prefix=${BOOX_OUT_PREFIX#*/}
 
     local out_full_prefix=${out_prefix}_${experiments_full_name}_tout${timeout}
     local err_full_prefix=${err_prefix}_${experiments_full_name}_tout${timeout}
     local results_full_prefix=${results_prefix}_${experiments_full_name}
+    local merged_results_full_prefix=${merged_results_prefix}_${experiments_full_name}
 
     local -n all_args=${tool^^}_ARGS
     if [[ -z ${all_args[*]} ]]; then
@@ -389,11 +453,16 @@ function run {
 }
 
 for timeout in ${TIMEOUTS[@]}; do
-    export TIMEOUT=$timeout
     for tool in ${USE_TOOLS[@]}; do
         for exp in ${RUN_EXPERIMENTS[@]}; do
-            run $tool $exp
+            run main $tool $exp $timeout
         done
+    done
+done
+
+for tool in ${USE_TOOLS[@]}; do
+    for exp in ${RUN_EXPERIMENTS[@]}; do
+        run plot $tool $exp
     done
 done
 
