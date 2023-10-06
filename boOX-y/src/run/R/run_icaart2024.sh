@@ -11,9 +11,22 @@ function contains {
     return 1
 }
 
+function split_string {
+   local in_str="$1"
+   local -n out_arr=$2
+   [[ -n $3 ]] && local IFS=$3
+
+   out_arr=($in_str)
+}
+
+SCRIPT_KW=icaart2024
+
 # TIMEOUTS=(30 60 120 240 480 960)
 TIMEOUTS=(30 60 120 240 480)
 TOOLS=(boox ccbs lra)
+
+declare -A TOOL_NAMES
+TOOL_NAMES=([boox]=SMT-CCBS [ccbs]=CCBS [lra]=SMT-LRA)
 
 BOOX_ARGS=()
 LRA_ARGS=(
@@ -319,7 +332,11 @@ function _run_main {
     _extract
 }
 
-function _merge {
+GNUPLOT_SOLVED_SCRIPT=${SCRIPT_KW}_solved.gp
+
+function _run_plot {
+    (( $EXTRACT_ONLY )) && return 0
+
     [[ -r $results_solved_file ]] || {
         printf "Results file not readable: %s\n" "$results_solved_file" >&2
         exit 4
@@ -329,19 +346,25 @@ function _merge {
 
     local rows=$(( ${#TIMEOUTS[@]} + 1 ))
 
+    local first=0
+    [[ $tool_id == 0 && (-z $args_id || $args_id == 0) ]] && first=1
+
+    local last=0
+    [[ $tool_id == $((${#USE_TOOLS[@]}-1)) && (-z $args_id || $args_id == $((${#all_args[@]}-1))) ]] && last=1
+
     for n in ${ns[@]}; do
-        local srsfile="$merged_results_solved_file"
-        [[ $n != $invalid_n ]] && srsfile="${srsfile/_merged/_merged_n${n}}"
+        local mrsfile="$merged_results_solved_file"
+        [[ $n != $invalid_n ]] && mrsfile="${mrsfile/_merged/_merged_n${n}}"
 
         printf "Merging %s" "$results_solved_file"
         [[ $n != $invalid_n ]] && printf " n=%d" $n
-        printf " -> %s ...\n" "$srsfile"
+        printf " -> %s ...\n" "$mrsfile"
 
-        if [[ $tool == boox ]]; then
-            awk "NR<=$rows{print \$1}" "$results_solved_file" >"$srsfile"
+        if (( $first )); then
+            awk "NR<=$rows{print \$1}" "$results_solved_file" >"$mrsfile"
         else
-            [[ -w $srsfile ]] || {
-                printf "Shared results file not writable: %s\n" "$srsfile" >&2
+            [[ -w $mrsfile ]] || {
+                printf "Shared results file not writable: %s\n" "$mrsfile" >&2
                 exit 4
             }
         fi
@@ -350,27 +373,73 @@ function _merge {
         [[ $n != $invalid_n ]] && (( col += $n - $min_neighbor ))
 
         local aux_f=`mktemp`
-        paste "$srsfile" <(awk "BEGIN{print \"$tool\"} NR>1&&NR<=$rows{print \$$col}" "$results_solved_file") >$aux_f
-        mv $aux_f "$srsfile"
+        paste "$mrsfile" <(awk "BEGIN{print \"$tool_name_full\"} NR>1&&NR<=$rows{print \$$col}" "$results_solved_file") >$aux_f
+        mv $aux_f "$mrsfile"
+
+        (( $last )) || continue
+
+        local psfile="${mrsfile%.dat}.svg"
+        psfile="${psfile/_merged/}"
+
+        printf "Plotting %s -> %s ...\n" "$mrsfile" "$psfile"
+
+        gnuplot -e "ifname='$mrsfile'; ofname='$psfile'" "$GNUPLOT_SOLVED_SCRIPT" || exit $?
     done
 }
 
-function _run_plot {
-    (( $EXTRACT_ONLY )) && return 0
+function split_args {
+    local in_str="${1#_}"
+    local -n out_str=$2
 
-    _merge
+    local arr
+    split_string "$in_str" arr -
+
+    local arr2
+    local comma
+    for i in ${!arr[@]}; do
+        (( $i == 0 )) && continue
+        if (( $i == ${#arr[@]}-1 )); then
+            comma=0
+        else
+            comma=1
+        fi
+        local elem="${arr[$i]}"
+        if [[ $elem =~ ^F[a-z] ]]; then
+            elem=${elem:1:1}
+            elem=${elem^}:
+            comma=0
+        elif [[ $elem =~ ^B[1-9] ]]; then
+            local e1=${elem:1:1}
+            (( e1 -= 1 ))
+            elem=${e1}${elem:2}
+        fi
+        (( $comma )) && elem+=,
+        arr2+=("$elem")
+    done
+
+    out_str="${arr2[*]}"
+    out_str="${out_str// /}"
 }
 
 function _run {
-    export ARGS="$@"
+    local args_id=$1
+
+    export ARGS=
     export ARGS_PREFIX=
 
     local args_str
-    [[ -n $ARGS ]] && {
+    [[ -n $args_id ]] && {
+        ARGS="${all_args[$args_id]}"
+
         args_str=" with args \"$ARGS\""
 
         ARGS_PREFIX=_${ARGS// /}
         ARGS_PREFIX=${ARGS_PREFIX//\'/}
+
+        local tool_name_args
+        split_args $ARGS_PREFIX tool_name_args
+        tool_name_full="${tool_name_full_bak}($tool_name_args)"
+
         out_full_prefix=${out_full_prefix_bak/$out_prefix/${out_prefix}$ARGS_PREFIX}
         err_full_prefix=${err_full_prefix_bak/$err_prefix/${err_prefix}$ARGS_PREFIX}
         results_full_prefix=${results_full_prefix_bak/$results_prefix/${results_prefix}$ARGS_PREFIX}
@@ -390,9 +459,15 @@ function run {
     local action=$1
     shift
 
-    local tool=${1,,}
+    local tool_id=$1
     local experiments_kw=${2,,}
     local timeout=$3
+
+    local tool=${USE_TOOLS[$tool_id],,}
+    local tool_suffix
+    [[ $tool != boox ]] && tool_suffix=-$tool
+    local tool_name="${TOOL_NAMES[$tool]}"
+    local tool_name_full="$tool_name"
 
     local experiments_type=${EXPERIMENT_TYPE[$experiments_kw]}
     local experiments_type2=${EXPERIMENT_TYPE2[$experiments_kw]}
@@ -401,9 +476,6 @@ function run {
     [[ -n $experiments_type ]] && experiments_name+=-${experiments_type}
     local experiments_full_name=${experiments_name}
     [[ -n $experiments_type2 ]] && experiments_full_name+=-${experiments_type2}
-
-    local tool_suffix
-    [[ $tool != boox ]] && tool_suffix=-$tool
 
     local min_neighbor=${MIN_NEIGHBOR[$experiments_kw]}
     local max_neighbor=${MAX_NEIGHBOR[$experiments_kw]}
@@ -442,27 +514,29 @@ function run {
     if [[ -z ${all_args[*]} ]]; then
         _run
     else
+        local tool_name_full_bak="$tool_name_full"
+
         local out_full_prefix_bak=$out_full_prefix
         local err_full_prefix_bak=$err_full_prefix
         local results_full_prefix_bak=$results_full_prefix
 
-        for args in "${all_args[@]}"; do
-            _run $args
+        for args_id in ${!all_args[@]}; do
+            _run $args_id
         done
     fi
 }
 
 for timeout in ${TIMEOUTS[@]}; do
-    for tool in ${USE_TOOLS[@]}; do
+    for tool_id in ${!USE_TOOLS[@]}; do
         for exp in ${RUN_EXPERIMENTS[@]}; do
-            run main $tool $exp $timeout
+            run main $tool_id $exp $timeout
         done
     done
 done
 
-for tool in ${USE_TOOLS[@]}; do
+for tool_id in ${!USE_TOOLS[@]}; do
     for exp in ${RUN_EXPERIMENTS[@]}; do
-        run plot $tool $exp
+        run plot $tool_id $exp
     done
 done
 

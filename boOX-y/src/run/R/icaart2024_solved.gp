@@ -1,15 +1,15 @@
-set terminal svg size 400,240 noenhance
+set terminal svg size 400,320 noenhance
 
 set output ofname
 
-n_orig_tools = 2
+n_sota_tools = 2
 n_overlap = 3
 
 stats ifname using 1 nooutput
 cols = STATS_columns
 n_tools = cols-1
 
-n_overlap_sets = (n_tools-n_orig_tools)/n_overlap
+n_overlap_sets = (n_tools-n_sota_tools)/n_overlap
 n_tools = n_tools - n_overlap_sets*(n_overlap-1)
 
 xmin = STATS_min
@@ -31,8 +31,18 @@ set style fill solid noborder
 set xlabel "Timeout [s]"
 set ylabel "Solved instances"
 
-set key horizontal tmargin left
-set key autotitle columnhead
+# default_fsize = 12.
+# fsize = 8.
+# fcoef = fsize/default_fsize
+# font = sprintf(",%d", fsize)
+
+# 'keywidth' does not seem to accept lower values
+# 'width' does not seem to accept lower values
+# force #cols with 'columns'?
+# font size with 'font'?
+set key horizontal Left reverse samplen bw spacing 1
+set key tmargin left
+set key enhance autotitle columnhead
 
 log2(x) = log(x)/log(2)
 fx(x) = log2(x/xmin)+1
@@ -56,8 +66,8 @@ set yrange [yrange_min:yrange_max]
 
 xpos(x, col) = fx(x)+bw*(col-1.5-n_tools*0.5)
 
-last_orig_col = 2+n_orig_tools-1
+last_sota_col = 2+n_sota_tools-1
 
 plot for [y=yrange_min:yrange_max:ystep] y with line notitle lc black lw 0.5 dashtype 2,\
-    for [i=2:last_orig_col] ifname using (xpos($1, i)):i, \
-    for [k=1:n_overlap_sets] for [j=1:n_overlap] "" using (xpos($1, last_orig_col+k)):last_orig_col+(k-1)*n_overlap+j
+    for [i=2:last_sota_col] ifname using (xpos($1, i)):i, \
+    for [k=1:n_overlap_sets] for [j=1:n_overlap] "" using (xpos($1, last_sota_col+k)):last_sota_col+(k-1)*n_overlap+j
