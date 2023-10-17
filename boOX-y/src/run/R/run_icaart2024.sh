@@ -12,17 +12,16 @@ function contains {
 }
 
 function split_string {
-   local in_str="$1"
-   local -n out_arr=$2
-   [[ -n $3 ]] && local IFS=$3
+    local in_str="$1"
+    local -n out_arr=$2
+    [[ -n $3 ]] && local IFS=$3
 
-   out_arr=($in_str)
+    out_arr=($in_str)
 }
 
 SCRIPT_KW=icaart2024
 
-# TIMEOUTS=(30 60 120 240 480 960)
-TIMEOUTS=(30 60 120 240 480)
+TIMEOUTS=(30 60 120 240 480 960)
 TOOLS=(boox ccbs lra)
 
 declare -A TOOL_NAMES
@@ -44,6 +43,7 @@ EXPERIMENTS=(empty road2-small)
 EXPERIMENT_TYPE=([empty]=16-16)
 EXPERIMENT_TYPE2=([empty]=random)
 
+# it must match the n's in the underlying run scripts ...
 declare -A {MIN,MAX}_NEIGHBOR
 MIN_NEIGHBOR=([empty]=2)
 MAX_NEIGHBOR=([empty]=5)
@@ -257,22 +257,42 @@ function _solve {
     return 0
 }
 
-function _extract {
+function _extract_data_file_head {
+    local out_f="$1"
+
     (( !$APPEND && $timeout == ${TIMEOUTS[0]} )) && {
-        printf "T" >"$results_solved_file"
+        printf "T" >"$out_f"
         [[ -n $min_neighbor && -n $max_neighbor ]] && {
             for (( n=$min_neighbor; $n <= $max_neighbor; ++n )); do
-                printf "\tn=%d" $n >>"$results_solved_file"
+                printf "\tn=%d" $n >>"$out_f"
             done
         }
-        printf "\n" >>"$results_solved_file"
+        printf "\n" >>"$out_f"
     }
-    printf "%d" $timeout >>"$results_solved_file"
+    printf "%d" $timeout >>"$out_f"
+}
+
+function _extract {
+    _extract_data_file_head "$results_solved_file"
+
+    for f in extract_solved{,_{begin,finish}{,_n}}_f; do
+        local -n f_link=$f
+        f_link=_${f%_f}_$tool
+        local -n f_callable_link=${f}_callable
+        f_callable_link=0
+        command -v $f_link &>/dev/null && f_callable_link=1
+    done
+
+    (( $extract_solved_begin_f_callable )) && $extract_solved_begin_f
 
     printf "\nExtracting %s\n" "$run_str"
     for n in ${ns[@]}; do
         local solved=0
         local errors=0
+
+        local aux_n_f=`mktemp`
+        (( $extract_solved_begin_n_f_callable )) && $extract_solved_begin_n_f
+
         for k in ${kruhobots[@]}; do
             printf "Extracting "
             [[ $n != $invalid_n ]] && printf "n=%d " $n
@@ -310,6 +330,8 @@ function _extract {
 
                 (( ++solved ))
                 (( ++lsolved ))
+
+                (( $extract_solved_f_callable )) && $extract_solved_f <"$ofile"
             done
             printf " solved: %d\n" $lsolved
         done
@@ -319,10 +341,38 @@ function _extract {
         (( $IGNORE_ERRORS && $errors > 0 )) && printf "Skipped error instances: %d\n" $errors
 
         printf "\t%d" $solved >>"$results_solved_file"
+
+        (( $extract_solved_finish_n_f_callable )) && $extract_solved_finish_n_f
+        rm -f $aux_n_f
     done
     printf "\n" >>"$results_solved_file"
 
+    (( $extract_solved_finish_f_callable )) && $extract_solved_finish_f
+
     return 0
+}
+
+function _extract_solved_begin_lra {
+    _extract_data_file_head "$results_coef_file"
+}
+
+function _extract_solved_lra {
+    awk -f "$LRA_ROOT/tools/results.awk" >>$aux_n_f
+}
+
+function _extract_solved_finish_n_lra {
+    local avg_suboptimal_coef=$(awk 'BEGIN{coef_sum=0} {coef_sum+=$3} END{print coef_sum/NR}' $aux_n_f) || exit $?
+
+    [[ $avg_suboptimal_coef =~ [1-9][0-9]*\.[0-9]+ ]] || {
+        printf "Expected guaranteed suboptimal coefficient, got: %s\n" "$avg_suboptimal_coef" >&2
+        exit 3
+    }
+
+    printf "\t%.2f" $avg_suboptimal_coef >>"$results_coef_file"
+}
+
+function _extract_solved_finish_lra {
+    printf "\n" >>"$results_coef_file"
 }
 
 function _run_main {
@@ -449,6 +499,10 @@ function _run {
 
     local results_solved_file=${results_full_prefix}_solved.dat
     local merged_results_solved_file=${merged_results_full_prefix}_solved_merged.dat
+
+    if [[ $tool == lra ]]; then
+        local results_coef_file=${results_full_prefix}_coef.dat
+    fi
 
     _run_${action}
 
