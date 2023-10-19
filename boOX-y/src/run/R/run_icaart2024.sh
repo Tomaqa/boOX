@@ -431,9 +431,16 @@ function _run_plot {
         local psfile="${mrsfile%.dat}.svg"
         psfile="${psfile/_merged/}"
 
+        #+ skip if the commands below are not available
         printf "Plotting %s -> %s ...\n" "$mrsfile" "$psfile"
 
         gnuplot -e "ifname='$mrsfile'; ofname='$psfile'" "$GNUPLOT_SOLVED_SCRIPT" || exit $?
+
+        local psfile_pdf="${psfile%.svg}.pdf"
+
+        printf "Exporting to PDF %s -> %s ...\n" "$psfile" "$psfile_pdf"
+
+        rsvg-convert -f pdf -o "$psfile_pdf" "$psfile" || exit $?
     done
 }
 
