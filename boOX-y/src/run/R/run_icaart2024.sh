@@ -314,7 +314,7 @@ function _extract {
                     printf "'%s' not readable !!\n" "$ofile" >&2
                     exit 2
                 }
-                (( $(head -n 1 "$ofile" | wc -l) == 1 )) || {
+                (( $(head -n 1 "$ofile" | wc -c) == 0 )) && {
                     printf "'%s' is empty !!\n" "$ofile" >&2
                     exit 2
                 }
@@ -357,7 +357,7 @@ function _extract_solved_begin_lra {
 }
 
 function _extract_solved_lra {
-    awk -f "$LRA_ROOT/tools/results.awk" >>$aux_n_f
+    awk -f "$LRA_ROOT/tools/results.awk" >>$aux_n_f || exit $?
 }
 
 function _extract_solved_finish_n_lra {
