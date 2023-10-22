@@ -19,7 +19,7 @@ set ytics ystep
 set y2tics ystep
 
 xmin_uniq = -1e6
-do for [x=xmin:xmax] {
+do for [x=xmin+1:xmax-1] {
     set xrange [x:xmax]
     do for [i=2:cols] {
         stats ifname using 1:i nooutput
@@ -33,7 +33,7 @@ do for [x=xmin:xmax] {
     }
 }
 xmax_uniq = 1e6
-do for [x=xmax:xmin_uniq+1:-1] {
+do for [x=xmax-1:xmin_uniq+1:-1] {
     set xrange [xmin_uniq:x]
     do for [i=2:cols] {
         stats ifname using 1:i nooutput
@@ -47,8 +47,8 @@ do for [x=xmax:xmin_uniq+1:-1] {
     }
 }
 
-xrange_min = xmin_uniq-1 > xmin ? xmin_uniq-1 : xmin
-xrange_max = xmin_uniq+1 < xmax ? xmax_uniq+1 : xmax
+xrange_min = max(xmin, xmin_uniq-1)
+xrange_max = min(xmax, xmax_uniq+1)
 yrange_min = 0
 yrange_max = 100
 
@@ -57,6 +57,6 @@ set yrange [yrange_min:yrange_max]
 
 last_sota_col = 2+n_sota_tools-1
 
-plot for [i=2:last_sota_col] ifname using i ls (i-1) lw lw, \
+plot for [i=2:last_sota_col] ifname using 1:i ls (i-1) lw lw, \
     for [k=1:n_overlap_sets] for [j=1:n_overlap] i=last_sota_col+(k-1)*n_overlap+j \
-        "" using i ls i-1 lw lw dashtype (dashsl,dashel) title j==n_overlap ? lra_title(i) : ""
+        "" using 1:i ls i-1 lw lw dashtype (dashsl,dashel) title j==n_overlap ? lra_title(i) : ""

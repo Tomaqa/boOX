@@ -1,3 +1,8 @@
+log2(x) = log(x)/log(2)
+
+min(x, y) = x < y ? x : y
+max(x, y) = x > y ? x : y
+
 set terminal svg size 400,320 enhance
 
 set output ofname
@@ -19,8 +24,8 @@ ymin = 1e6
 ymax = 0
 do for [i=2:cols] {
     stats ifname using i nooutput
-    ymin = (ymin < STATS_min) ? ymin : STATS_min
-    ymax = (ymax > STATS_max) ? ymax : STATS_max
+    ymin = min(ymin, STATS_min)
+    ymax = max(ymax, STATS_max)
 }
 
 rgba(r, g, b, a) = 2**24*int(a) + 2**16*int(r) + 2**8*int(g) + int(b)
@@ -56,8 +61,6 @@ palleteac(i, ac) = palleteacc(i, ac, 1.)
 ## does not seem to be useful - it may result in ugly colors
 # palletec(i, c) = palleteacc(i, 1., c)
 pallete(i) = palleteac(i, 1.)
-
-log2(x) = log(x)/log(2)
 
 do for [i=1:n_sota_tools] {
     set style line i lc rgb (pallete(i))
