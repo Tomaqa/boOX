@@ -48,9 +48,10 @@ declare -A {MIN,MAX}_NEIGHBOR
 MIN_NEIGHBOR=([empty]=2)
 MAX_NEIGHBOR=([empty]=5)
 
+ACTION_SOLVE=0
+ACTION_EXTRACT=0
+ACTION_PLOT=0
 CONFIRM=1
-EXTRACT_ONLY=0
-PLOT_ONLY=0
 APPEND=0
 IGNORE_ERRORS=0
 while true; do
@@ -60,15 +61,22 @@ while true; do
     shift
 
     case "$opt" in
+        -s) ACTION_SOLVE=1;;
+        -x) ACTION_EXTRACT=1;;
+        -p) ACTION_PLOT=1;;
         -n) CONFIRM=0;;
-        -x) EXTRACT_ONLY=1;;
-        -p) PLOT_ONLY=1;;
         -t) TIMEOUTS=($1); shift;;
         -a) APPEND=1;;
         -e) IGNORE_ERRORS=1;;
         *) printf "Unknown option: '%s'\n" "$opt" >&2; exit 1;;
     esac
 done
+
+(( $ACTION_SOLVE || $ACTION_EXTRACT || $ACTION_PLOT )) || {
+    ACTION_SOLVE=1
+    ACTION_EXTRACT=1
+    ACTION_PLOT=1
+}
 
 if [[ -z $1 ]]; then
     USE_TOOLS=(${TOOLS[@]})
@@ -112,7 +120,7 @@ export CCBS_ROOT="$CCBS_ROOT_DIRNAME/ccbs"
 export CCBS_BIN=CCBS
 
 function maybe_clone_dir (
-    (( $EXTRACT_ONLY || $PLOT_ONLY )) && return 0
+    (( $ACTION_SOLVE )) || return 0
 
     local tool=${1^^}
     local clone_args=($2)
@@ -141,7 +149,7 @@ function maybe_clone_dir (
 )
 
 function check_bin (
-    (( $EXTRACT_ONLY || $PLOT_ONLY )) && return 0
+    (( $ACTION_SOLVE )) || return 0
 
     local tool=${1^^}
     local make_rule=$2
@@ -176,7 +184,7 @@ function check_bin (
 }
 
 function check_kruR {
-    (( $EXTRACT_ONLY || $PLOT_ONLY )) && return 0
+    (( $ACTION_SOLVE )) || return 0
 
     local exp=$1
 
@@ -209,7 +217,7 @@ export LRA_ERR_PREFIX=${BOOX_ERR_PREFIX}-lra
 export CCBS_ERR_PREFIX=${BOOX_ERR_PREFIX}-ccbs
 
 function _solve {
-    (( $EXTRACT_ONLY )) && return 0
+    (( $ACTION_SOLVE )) || return 0
 
     printf "\nSolving %s\n" "$run_str"
     (( $CONFIRM )) && {
@@ -273,6 +281,8 @@ function _extract_data_file_head {
 }
 
 function _extract {
+    (( $ACTION_EXTRACT )) || return 0
+
     _extract_data_file_head "$results_solved_file"
 
     for f in extract_solved{,_{begin,finish}{,_n}}_f; do
@@ -376,8 +386,6 @@ function _extract_solved_finish_lra {
 }
 
 function _run_main {
-    (( $PLOT_ONLY )) && return 0
-
     _solve
     _extract
 }
@@ -385,7 +393,7 @@ function _run_main {
 GNUPLOT_SOLVED_SCRIPT=${SCRIPT_KW}_solved.gp
 
 function _run_plot {
-    (( $EXTRACT_ONLY )) && return 0
+    (( $ACTION_PLOT )) || return 0
 
     [[ -r $results_solved_file ]] || {
         printf "Results file not readable: %s\n" "$results_solved_file" >&2
