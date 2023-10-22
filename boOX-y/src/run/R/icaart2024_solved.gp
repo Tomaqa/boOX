@@ -96,8 +96,8 @@ finv(x) = 2**(x-1)*xmin
 set xtics scale 0 1
 set for [i=1:fx(xmax)] xtics add (sprintf("%d", finv(i)) i)
 set link y2
-set ytics scale 0.5
-set y2tics scale 0.5
+set ytics scale 0.5 100
+set y2tics scale 0.5 100
 
 ystep = 100
 
