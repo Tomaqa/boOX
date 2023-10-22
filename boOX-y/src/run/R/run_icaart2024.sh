@@ -266,24 +266,40 @@ function _solve {
 }
 
 function _extract_data_file_head {
-    local out_f="$1"
+    local key_var=$1
+    local out_f="$2"
 
-    (( !$APPEND && $timeout == ${TIMEOUTS[0]} )) && {
-        printf "T" >"$out_f"
-        [[ -n $min_neighbor && -n $max_neighbor ]] && {
-            for (( n=$min_neighbor; $n <= $max_neighbor; ++n )); do
-                printf "\tn=%d" $n >>"$out_f"
-            done
-        }
+    local -n key_val=$key_var
+
+    local key_name=$key_var
+    case $key_var in
+        timeout)
+            local first_key_val=${TIMEOUTS[0]}
+            key_name="T"
+            ;;
+        k)
+            local first_key_val=${kruhobots[0]}
+            ;;
+        *)
+            printf "_extract_data_file_head key_var ERROR\n" >&2
+            exit 7
+    esac
+
+    (( !$APPEND && $key_val == $first_key_val )) && {
+        printf "%s" "$key_name" >"$out_f"
+        for n in ${ns[@]}; do
+            [[ $n == $invalid_n ]] && continue
+            printf "\tn=%d" $n >>"$out_f"
+        done
         printf "\n" >>"$out_f"
     }
-    printf "%d" $timeout >>"$out_f"
+    printf "%d" $key_val >>"$out_f"
 }
 
 function _extract {
     (( $ACTION_EXTRACT )) || return 0
 
-    _extract_data_file_head "$results_solved_file"
+    _extract_data_file_head timeout "$results_solved_file"
 
     for f in extract_solved{,_{begin,finish}{,_n}}_f; do
         local -n f_link=$f
@@ -296,9 +312,21 @@ function _extract {
     (( $extract_solved_begin_f_callable )) && $extract_solved_begin_f
 
     printf "\nExtracting %s\n" "$run_str"
+
+    for n in ${ns[@]}; do
+        local lsolved_data_var=lsolved_data_n$n
+        [[ $n != $invalid_n ]] && lsolved_data_var+=_n$n
+        local -n lsolved_data=$lsolved_data_var
+        lsolved_data=()
+    done
+
     for n in ${ns[@]}; do
         local solved=0
         local errors=0
+
+        local lsolved_data_var=lsolved_data_n$n
+        [[ $n != $invalid_n ]] && lsolved_data_var+=_n$n
+        local -n lsolved_data=$lsolved_data_var
 
         local aux_n_f=`mktemp`
         (( $extract_solved_begin_n_f_callable )) && $extract_solved_begin_n_f
@@ -344,6 +372,8 @@ function _extract {
                 (( $extract_solved_f_callable )) && $extract_solved_f <"$ofile"
             done
             printf " solved: %d\n" $lsolved
+
+            lsolved_data[$k]=$lsolved
         done
         printf "Total solved instances"
         [[ $n != $invalid_n ]] && printf " for n=%d" $n
@@ -357,13 +387,29 @@ function _extract {
     done
     printf "\n" >>"$results_solved_file"
 
+    for k in ${kruhobots[@]}; do
+        _extract_data_file_head k "$results_solved_rate_file"
+
+        for n in ${ns[@]}; do
+            local lsolved_data_var=lsolved_data_n$n
+            [[ $n != $invalid_n ]] && lsolved_data_var+=_n$n
+            local -n lsolved_data=$lsolved_data_var
+
+            local lsolved=${lsolved_data[$k]}
+            local lsolved_rate=$(( ($lsolved*100) / ${#scenarios[@]} ))
+
+            printf "\t%d" $lsolved_rate >>"$results_solved_rate_file"
+        done
+        printf "\n" >>"$results_solved_rate_file"
+    done
+
     (( $extract_solved_finish_f_callable )) && $extract_solved_finish_f
 
     return 0
 }
 
 function _extract_solved_begin_lra {
-    _extract_data_file_head "$results_coef_file"
+    _extract_data_file_head timeout "$results_coef_file"
 }
 
 function _extract_solved_lra {
@@ -391,18 +437,23 @@ function _run_main {
 }
 
 GNUPLOT_SOLVED_SCRIPT=${SCRIPT_KW}_solved.gp
+GNUPLOT_SOLVED_RATE_SCRIPT=${SCRIPT_KW}_solved_rate.gp
 
-function _run_plot {
-    (( $ACTION_PLOT )) || return 0
+function _merge_and_plot {
+    local rsfile="$1"
+    local mrsfile="$2"
+    local key_arr_var=$3
+    local gnuplot_script="$4"
 
-    [[ -r $results_solved_file ]] || {
-        printf "Results file not readable: %s\n" "$results_solved_file" >&2
+    [[ -r $rsfile ]] || {
+        printf "Results file not readable: %s\n" "$rsfile" >&2
         exit 4
     }
 
     printf "\n"
 
-    local rows=$(( ${#TIMEOUTS[@]} + 1 ))
+    local -n key_arr=$key_arr_var
+    local rows=$(( ${#key_arr[@]} + 1 ))
 
     local first=0
     [[ $tool_id == 0 && (-z $args_id || $args_id == 0) ]] && first=1
@@ -410,16 +461,17 @@ function _run_plot {
     local last=0
     [[ $tool_id == $((${#USE_TOOLS[@]}-1)) && (-z $args_id || $args_id == $((${#all_args[@]}-1))) ]] && last=1
 
+    local mrsfile_bak="$mrsfile"
     for n in ${ns[@]}; do
-        local mrsfile="$merged_results_solved_file"
+        mrsfile="$mrsfile_bak"
         [[ $n != $invalid_n ]] && mrsfile="${mrsfile/_merged/_merged_n${n}}"
 
-        printf "Merging %s" "$results_solved_file"
+        printf "Merging %s" "$rsfile"
         [[ $n != $invalid_n ]] && printf " n=%d" $n
         printf " -> %s ...\n" "$mrsfile"
 
         if (( $first )); then
-            awk "NR<=$rows{print \$1}" "$results_solved_file" >"$mrsfile"
+            awk "NR<=$rows{print \$1}" "$rsfile" >"$mrsfile"
         else
             [[ -w $mrsfile ]] || {
                 printf "Shared results file not writable: %s\n" "$mrsfile" >&2
@@ -431,7 +483,7 @@ function _run_plot {
         [[ $n != $invalid_n ]] && (( col += $n - $min_neighbor ))
 
         local aux_f=`mktemp`
-        paste "$mrsfile" <(awk "BEGIN{print \"$tool_name_full\"} NR>1&&NR<=$rows{print \$$col}" "$results_solved_file") >$aux_f
+        paste "$mrsfile" <(awk "BEGIN{print \"$tool_name_full\"} NR>1&&NR<=$rows{print \$$col}" "$rsfile") >$aux_f
         mv $aux_f "$mrsfile"
 
         (( $last )) || continue
@@ -442,7 +494,7 @@ function _run_plot {
         #+ skip if the commands below are not available
         printf "Plotting %s -> %s ...\n" "$mrsfile" "$psfile"
 
-        gnuplot -e "ifname='$mrsfile'; ofname='$psfile'" "$GNUPLOT_SOLVED_SCRIPT" || exit $?
+        gnuplot -e "ifname='$mrsfile'; ofname='$psfile'" "$gnuplot_script" || exit $?
 
         local psfile_pdf="${psfile%.svg}.pdf"
 
@@ -450,6 +502,16 @@ function _run_plot {
 
         rsvg-convert -f pdf -o "$psfile_pdf" "$psfile" || exit $?
     done
+}
+
+function _run_plot {
+    (( $ACTION_PLOT )) || return 0
+
+    [[ $timeout ==  ${TIMEOUTS[0]} ]] && {
+        _merge_and_plot "$results_solved_file" "$merged_results_solved_file" TIMEOUTS "$GNUPLOT_SOLVED_SCRIPT"
+    }
+
+    _merge_and_plot "$results_solved_rate_file" "$merged_results_solved_rate_file" kruhobots "$GNUPLOT_SOLVED_RATE_SCRIPT"
 }
 
 function split_args {
@@ -514,6 +576,9 @@ function _run {
 
     local results_solved_file=${results_full_prefix}_solved.dat
     local merged_results_solved_file=${merged_results_full_prefix}_solved_merged.dat
+
+    local results_solved_rate_file=${results_full_prefix}_tout${timeout}_solved_rate.dat
+    local merged_results_solved_rate_file=${merged_results_full_prefix}_tout${timeout}_solved_rate_merged.dat
 
     if [[ $tool == lra ]]; then
         local results_coef_file=${results_full_prefix}_coef.dat
@@ -605,7 +670,9 @@ done
 
 for tool_id in ${!USE_TOOLS[@]}; do
     for exp in ${RUN_EXPERIMENTS[@]}; do
-        run plot $tool_id $exp
+        for timeout in ${TIMEOUTS[@]}; do
+            run plot $tool_id $exp $timeout
+        done
     done
 done
 
