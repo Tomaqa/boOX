@@ -6,6 +6,12 @@ stats ifname using 1 nooutput
 cols = STATS_columns
 n_tools = cols-1
 
+n_sota_tools = 2
+n_overlap = 3
+
+n_overlap_sets = (n_tools-n_sota_tools)/n_overlap
+n_tools = n_tools - n_overlap_sets*(n_overlap-1)
+
 xmin = STATS_min
 xmax = STATS_max
 
@@ -53,4 +59,29 @@ pallete(i) = palleteac(i, 1.)
 
 log2(x) = log(x)/log(2)
 
+do for [i=1:n_sota_tools] {
+    set style line i lc rgb (pallete(i))
+}
+do for [k=1:n_overlap_sets] {
+    k_ = n_sota_tools+k
+    do for [j=1:n_overlap] {
+        i = n_sota_tools+(k-1)*n_overlap+j
+        set style line i lc rgb (palleteac(k_, 0.35+0.25*(j-1)))
+    }
+}
+
+lra_title(i) = columnhead(i)[1:strstrt(columnhead(i), ":")-1].", {/Symbol d})"
+
+# default_fsize = 12.
+# fsize = 8.
+# fcoef = fsize/default_fsize
+# font = sprintf(",%d", fsize)
+
+# 'keywidth' does not seem to accept lower values
+# 'width' does not seem to accept lower values
+# force #cols with 'columns'?
+# font size with 'font'?
+
 set key enhance autotitle columnhead
+set key horizontal Left reverse spacing 1
+set key tmargin left
