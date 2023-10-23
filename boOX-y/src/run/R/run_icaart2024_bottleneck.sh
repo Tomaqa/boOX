@@ -6,7 +6,7 @@
 TOOLS=(boox ccbs lra)
 
 function exec_boox {
-    ../../main/mapfR_solver_boOX --input-mapR-file=bottleneck/bottleneck_${k}.mapR --input-kruhoR-file=bottleneck/bottleneck_${k}.kruR --algorithm='smtcbsR*'
+    ../../main/mapfR_solver_boOX --input-mapR-file=bottleneck/bottleneck_${k}.mapR --input-kruhoR-file=bottleneck/bottleneck_${k}.kruR --algorithm='smtcbsR*' --timeout=1800
 }
 
 function exec_ccbs {
@@ -46,25 +46,31 @@ DATA_FILE=./bottleneck.dat
 for tool in ${TOOLS[@]}; do
     printf "%s ...\n" $tool
 
-    bin=${BINS[$tool]}
-
     data_file=${DATA_FILE%.dat}_${tool}.dat
     printf "k\tt\n" >$data_file
 
+    failed=0
     for (( k=$MIN_K; $k <= $MAX_K; ++k )); do
-        ofile=bottleneck/out_${tool}_${k}.txt
-
         printf "k=%d ..." $k
-        exec_${tool} >$ofile || exit $?
-        printf "\n"
+        printf "%d\t" $k >>$data_file
 
-        t=$(extract_t_${tool} <$ofile)
-        printf "%d\t%.4f" $k $t >>$data_file
+        if (( $failed )); then
+            printf "?" >>$data_file
+        else
+            ofile=bottleneck/out_${tool}_${k}.txt
 
-        failed_${tool} && {
+            exec_${tool} >$ofile || exit $?
+
+            t=$(extract_t_${tool} <$ofile)
+            printf "%.4f" $t >>$data_file
+        fi
+
+        ( (( $failed )) || failed_${tool} ) && {
             printf "\tX" >>$data_file
+            failed=1
         }
 
+        printf "\n"
         printf "\n" >>$data_file
     done
 done
