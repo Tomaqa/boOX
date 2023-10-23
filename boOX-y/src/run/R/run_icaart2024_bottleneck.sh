@@ -1,7 +1,7 @@
 #!/bin/bash
 
 [[ -z $MIN_K ]] && MIN_K=2
-[[ -z $MAX_K ]] && MAX_K=10
+[[ -z $MAX_K ]] && MAX_K=30
 
 TOOLS=(boox ccbs lra)
 
