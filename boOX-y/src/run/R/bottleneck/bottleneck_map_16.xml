@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="key0" for="node" attr.name="coords" attr.type="string" />
+  <key id="key1" for="edge" attr.name="weight" attr.type="double" />
+  <graph id="G" edgedefault="directed" parse.nodeids="free" parse.edgeids="canonical" parse.order="nodesfirst">
+  <node id="n0">
+    <data key="key0">100.0,50.0</data>
+  </node>
+  <node id="n1">
+    <data key="key0">104.90087,50.240765</data>
+  </node>
+  <node id="n2">
+    <data key="key0">109.75452,50.96074</data>
+  </node>
+  <node id="n3">
+    <data key="key0">114.51425,52.15299</data>
+  </node>
+  <node id="n4">
+    <data key="key0">119.13418,53.806026</data>
+  </node>
+  <node id="n5">
+    <data key="key0">123.56984,55.903934</data>
+  </node>
+  <node id="n6">
+    <data key="key0">127.77852,58.426525</data>
+  </node>
+  <node id="n7">
+    <data key="key0">131.71967,61.34948</data>
+  </node>
+  <node id="n8">
+    <data key="key0">135.35535,64.64467</data>
+  </node>
+  <node id="n9">
+    <data key="key0">138.65053,68.28034</data>
+  </node>
+  <node id="n10">
+    <data key="key0">141.57349,72.22148</data>
+  </node>
+  <node id="n11">
+    <data key="key0">144.09607,76.430176</data>
+  </node>
+  <node id="n12">
+    <data key="key0">146.19397,80.86583</data>
+  </node>
+  <node id="n13">
+    <data key="key0">147.84702,85.48578</data>
+  </node>
+  <node id="n14">
+    <data key="key0">149.03926,90.24549</data>
+  </node>
+  <node id="n15">
+    <data key="key0">149.75925,95.09916</data>
+  </node>
+  <node id="n16">
+    <data key="key0">100.0,150.0</data>
+  </node>
+  <node id="n17">
+    <data key="key0">95.09914,149.75923</data>
+  </node>
+  <node id="n18">
+    <data key="key0">90.24548,149.03926</data>
+  </node>
+  <node id="n19">
+    <data key="key0">85.48576,147.84702</data>
+  </node>
+  <node id="n20">
+    <data key="key0">80.86582,146.19397</data>
+  </node>
+  <node id="n21">
+    <data key="key0">76.43016,144.09607</data>
+  </node>
+  <node id="n22">
+    <data key="key0">72.22148,141.57349</data>
+  </node>
+  <node id="n23">
+    <data key="key0">68.280334,138.65053</data>
+  </node>
+  <node id="n24">
+    <data key="key0">64.64466,135.35535</data>
+  </node>
+  <node id="n25">
+    <data key="key0">61.349476,131.71967</data>
+  </node>
+  <node id="n26">
+    <data key="key0">58.426517,127.77851</data>
+  </node>
+  <node id="n27">
+    <data key="key0">55.90393,123.56983</data>
+  </node>
+  <node id="n28">
+    <data key="key0">53.80602,119.13416</data>
+  </node>
+  <node id="n29">
+    <data key="key0">52.15298,114.51424</data>
+  </node>
+  <node id="n30">
+    <data key="key0">50.960735,109.75452</data>
+  </node>
+  <node id="n31">
+    <data key="key0">50.240765,104.900856</data>
+  </node>
+  <node id="n32">
+    <data key="key0">100.0,100.0</data>
+  </node>
+  <edge id="e0" source="n0" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e1" source="n1" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e2" source="n2" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e3" source="n3" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e4" source="n4" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e5" source="n5" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e6" source="n6" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e7" source="n7" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e8" source="n8" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e9" source="n9" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e10" source="n10" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e11" source="n11" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e12" source="n12" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e13" source="n13" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e14" source="n14" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e15" source="n15" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e32" source="n32" target="n0">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e33" source="n32" target="n1">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e34" source="n32" target="n2">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e35" source="n32" target="n3">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e36" source="n32" target="n4">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e37" source="n32" target="n5">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e38" source="n32" target="n6">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e39" source="n32" target="n7">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e40" source="n32" target="n8">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e41" source="n32" target="n9">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e42" source="n32" target="n10">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e43" source="n32" target="n11">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e44" source="n32" target="n12">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e45" source="n32" target="n13">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e46" source="n32" target="n14">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e47" source="n32" target="n15">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e16" source="n32" target="n16">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e17" source="n32" target="n17">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e18" source="n32" target="n18">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e19" source="n32" target="n19">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e20" source="n32" target="n20">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e21" source="n32" target="n21">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e22" source="n32" target="n22">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e23" source="n32" target="n23">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e24" source="n32" target="n24">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e25" source="n32" target="n25">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e26" source="n32" target="n26">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e27" source="n32" target="n27">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e28" source="n32" target="n28">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e29" source="n32" target="n29">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e30" source="n32" target="n30">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e31" source="n32" target="n31">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e48" source="n16" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e49" source="n17" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e50" source="n18" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e51" source="n19" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e52" source="n20" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e53" source="n21" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e54" source="n22" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e55" source="n23" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e56" source="n24" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e57" source="n25" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e58" source="n26" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e59" source="n27" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e60" source="n28" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e61" source="n29" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e62" source="n30" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  <edge id="e63" source="n31" target="n32">
+    <data key="key1">1</data>
+  </edge>
+  </graph>
+</graphml>
