@@ -16,16 +16,19 @@ LRA_ARGS=(
     '-Fsoc -B1.25'
 )
 
+## in CCBS it is hard-constrained in the XML config file to 1800 - higher values will not work
+[[ -z $TIMEOUT ]] && TIMEOUT=1800
+
 function exec_boox {
-    ../../main/mapfR_solver_boOX "$@" --input-mapR-file=bottleneck/bottleneck_${k}.mapR --input-kruhoR-file=bottleneck/bottleneck_${k}.kruR --algorithm='smtcbsR*' --timeout=1800
+    timeout $TIMEOUT ../../main/mapfR_solver_boOX "$@" --input-mapR-file=bottleneck/bottleneck_${k}.mapR --input-kruhoR-file=bottleneck/bottleneck_${k}.kruR --algorithm='smtcbsR*' --timeout=$TIMEOUT
 }
 
 function exec_ccbs {
-    ../../../../ccbs/CCBS "$@" bottleneck/bottleneck_map_${k}.xml bottleneck/bottleneck_task_${k}.xml ../../../../ccbs/Examples/config_bottleneck.xml
+    timeout $TIMEOUT ../../../../ccbs/CCBS "$@" bottleneck/bottleneck_map_${k}.xml bottleneck/bottleneck_task_${k}.xml ../../../../ccbs/Examples/config_bottleneck.xml
 }
 
 function exec_lra {
-    ../../../../mapf_r/bin/release/mathsat_solver "$@" bottleneck/bottleneck_${k}.mapR bottleneck/bottleneck_${k}.kruR
+    timeout $TIMEOUT ../../../../mapf_r/bin/release/mathsat_solver "$@" bottleneck/bottleneck_${k}.mapR bottleneck/bottleneck_${k}.kruR
 }
 
 function extract_t_boox {
@@ -45,7 +48,7 @@ function failed_boox {
 }
 
 function failed_ccbs {
-    grep -q 'found: false' $ofile
+    ! grep -q 'found: true' $ofile
 }
 
 function failed_lra {
@@ -95,10 +98,17 @@ function run_tool_args {
         else
             local ofile=bottleneck/out_${tool_full}_${k}.txt
 
-            exec_${tool} $@ >$ofile || exit $?
+            exec_${tool} $@ >$ofile
+            local ret=$?
+            (( $ret != 0 && $ret != 124 )) && exit $ret
 
             local t=$(extract_t_${tool} <$ofile)
-            printf "%.4f" $t >>$data_file
+
+            if failed_${tool}; then
+                printf "%d" $TIMEOUT >>$data_file
+            else
+                printf "%.4f" $t >>$data_file
+            fi
         fi
 
         ( (( $failed )) || failed_${tool} ) && {
