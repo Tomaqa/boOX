@@ -31,7 +31,8 @@ do for [i=2:cols] {
 rgba(r, g, b, a) = 2**24*int(a) + 2**16*int(r) + 2**8*int(g) + int(b)
 rgb(r, g, b) = rgba(r, g, b, 0)
 
-rgbac(r, g, b, a, c) = rgba(r*c, g*c, b*c, a)
+rgbac(r, g, b, a, c) = c <= 1. ? rgba(r*c, g*c, b*c, a) \
+                               : rgba(r + (255-r)*(c-1), g + (255-g)*(c-1), b + (255-b)*(c-1), a)
 rgbc(r, g, b, c) = rgbac(r, g, b, 0, c)
 rgbacc(r, g, b, ac, c) = rgbac(r, g, b, (1.-ac)*255, c)
 
@@ -58,8 +59,7 @@ palleteacc(i, ac, c) = \
     i==7 ? rgbacc(121, 85, 72, ac, c) :\
            rgbacc(255, 187, 59, ac, c)
 palleteac(i, ac) = palleteacc(i, ac, 1.)
-## does not seem to be useful - it may result in ugly colors
-# palletec(i, c) = palleteacc(i, 1., c)
+palletec(i, c) = palleteacc(i, 1., c)
 pallete(i) = palleteac(i, 1.)
 
 do for [i=1:n_sota_tools] {
@@ -69,7 +69,7 @@ do for [k=1:n_overlap_sets] {
     k_ = n_sota_tools+k
     do for [j=1:n_overlap] {
         i = n_sota_tools+(k-1)*n_overlap+j
-        set style line i lc rgb (palleteac(k_, 0.35+0.25*(j-1)))
+        set style line i lc rgb (palletec(k_, 1.+0.2*(n_overlap-j)))
     }
 }
 

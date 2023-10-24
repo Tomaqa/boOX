@@ -1,9 +1,12 @@
 load "icaart2024_lib.gp"
 
 lw = 1.5
-dashsl = 10
-dashel = 5
+dashl = 10
 set style data lines
+
+dashcoef(k) = 1./k
+dashsl(k) = dashl*dashcoef(k)
+dashel(k) = dashl*0.5*dashcoef(k)
 
 set xlabel "Number of agents"
 set ylabel "Succes rate [%]"
@@ -59,4 +62,4 @@ last_sota_col = 2+n_sota_tools-1
 
 plot for [i=2:last_sota_col] ifname using 1:i ls (i-1) lw lw, \
     for [k=1:n_overlap_sets] for [j=1:n_overlap] i=last_sota_col+(k-1)*n_overlap+j \
-        "" using 1:i ls i-1 lw lw dashtype (dashsl,dashel) title j==n_overlap ? lra_title(i) : ""
+        "" using 1:i ls i-1 lw lw dashtype (dashsl(k),dashel(k)) title j==n_overlap ? lra_title(i) : ""
