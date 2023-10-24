@@ -87,13 +87,13 @@ function run_tool_args {
     local data_file=${DATA_FILE%.dat}_${tool_full}.dat
     printf "k\tt\n" >$data_file
 
-    local failed=0
+    local first_failed=0
     local k
     for (( k=$MIN_K; $k <= $MAX_K; ++k )); do
         printf "k=%d ..." $k
         printf "%d\t" $k >>$data_file
 
-        if (( $failed )); then
+        if (( $first_failed )); then
             printf "?" >>$data_file
         else
             local ofile=bottleneck/out_${tool_full}_${k}.txt
@@ -105,15 +105,15 @@ function run_tool_args {
             local t=$(extract_t_${tool} <$ofile)
 
             if failed_${tool}; then
-                printf "%d" $TIMEOUT >>$data_file
+                printf "%.2f" $TIMEOUT >>$data_file
             else
                 printf "%.4f" $t >>$data_file
             fi
         fi
 
-        ( (( $failed )) || failed_${tool} ) && {
+        ( (( $first_failed )) || failed_${tool} ) && {
             printf "\tX" >>$data_file
-            failed=1
+            [[ $tool != lra ]] && first_failed=1
         }
 
         printf "\n"
