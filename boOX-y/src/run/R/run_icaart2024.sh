@@ -28,6 +28,7 @@ declare -A TOOL_NAMES
 TOOL_NAMES=([boox]=SMT-CCBS [ccbs]=CCBS [lra]=SMT-LRA)
 
 BOOX_ARGS=()
+CCBS_ARGS=()
 LRA_ARGS=(
     '-Fmakespan -B2'
     '-Fmakespan -B1.5'
@@ -36,7 +37,6 @@ LRA_ARGS=(
     '-Fsoc -B1.5'
     '-Fsoc -B1.25'
 )
-CCBS_ARGS=()
 
 declare -A EXPERIMENT_TYPE{,2}
 EXPERIMENTS=(empty road2-small)
@@ -111,13 +111,13 @@ done
 export BOOX_ROOT=../../../
 export BOOX_BIN=src/main/mapfR_solver_boOX
 
+CCBS_ROOT_DIRNAME="$BOOX_ROOT/.."
+export CCBS_ROOT="$CCBS_ROOT_DIRNAME/ccbs"
+export CCBS_BIN=CCBS
+
 LRA_ROOT_DIRNAME="$BOOX_ROOT/.."
 export LRA_ROOT="$LRA_ROOT_DIRNAME/mapf_r"
 export LRA_BIN=bin/release/mathsat_solver
-
-CCBS_ROOT_DIRNAME="$LRA_ROOT_DIRNAME"
-export CCBS_ROOT="$CCBS_ROOT_DIRNAME/ccbs"
-export CCBS_BIN=CCBS
 
 function maybe_clone_dir (
     (( $ACTION_SOLVE )) || return 0
@@ -210,11 +210,11 @@ OUT_DIR=out
 mkdir -p $OUT_DIR >/dev/null
 
 export BOOX_OUT_PREFIX=$OUT_DIR/out
-export LRA_OUT_PREFIX=${BOOX_OUT_PREFIX}-lra
 export CCBS_OUT_PREFIX=${BOOX_OUT_PREFIX}-ccbs
+export LRA_OUT_PREFIX=${BOOX_OUT_PREFIX}-lra
 export BOOX_ERR_PREFIX=$OUT_DIR/err
-export LRA_ERR_PREFIX=${BOOX_ERR_PREFIX}-lra
 export CCBS_ERR_PREFIX=${BOOX_ERR_PREFIX}-ccbs
+export LRA_ERR_PREFIX=${BOOX_ERR_PREFIX}-lra
 
 function _solve {
     (( $ACTION_SOLVE )) || return 0
